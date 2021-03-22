@@ -8,6 +8,11 @@ fn weighted_centroid(points: Vec<delaunator::Point>, img: &image::DynamicImage) 
     // Minimum weight to avoid rejecting pure vertices.
     const MIN_WEIGHT: f64 = 0.0000000001;
 
+    let points = points
+        .into_iter()
+        .map(|p| Point::from(p))
+        .collect::<Vec<_>>();
+
     // Use vertices of the hull as sample points and final weights for the points. However, we
     // should use the entire cell or image as a density function. In some cases points may wander
     // off ...
@@ -17,12 +22,7 @@ fn weighted_centroid(points: Vec<delaunator::Point>, img: &image::DynamicImage) 
         .map(|c| (to_black(c[0], c[1], c[2]) as f64).clamp(MIN_WEIGHT, 1.0))
         .collect::<Vec<_>>();
 
-    let center = points
-        .iter()
-        .fold(Point { x: 0.0, y: 0.0 }, |acc, p| Point {
-            x: acc.x + p.x,
-            y: acc.y + p.y,
-        });
+    let center = points.iter().fold(Point::origin(), |acc, p| acc + *p);
 
     let len = weights.len() as f64;
     let cx = center.x / len;
@@ -31,14 +31,10 @@ fn weighted_centroid(points: Vec<delaunator::Point>, img: &image::DynamicImage) 
     let center_weight = (to_black(c[0], c[1], c[2]) as f64).clamp(MIN_WEIGHT, 1.0);
     let sum = weights.iter().sum::<f64>() + center_weight;
 
-    let mut result = Point {
-        x: cx * center_weight / sum,
-        y: cy * center_weight / sum,
-    };
+    let mut result = Point::new(cx * center_weight / sum, cy * center_weight / sum);
 
-    for (point, weight) in points.iter().zip(weights) {
-        result.x += point.x * weight / sum;
-        result.y += point.y * weight / sum;
+    for (point, weight) in points.into_iter().zip(weights) {
+        result += point * weight / sum;
     }
 
     result
