@@ -1,9 +1,10 @@
 use crate::color::to_black;
+use crate::point::Point;
 use anyhow::{anyhow, Result};
 use image::GenericImageView;
-use voronator::delaunator::Point;
+use voronator::delaunator;
 
-fn weighted_centroid(points: &Vec<Point>, img: &image::DynamicImage) -> Point {
+fn weighted_centroid(points: Vec<delaunator::Point>, img: &image::DynamicImage) -> Point {
     // Minimum weight to avoid rejecting pure vertices.
     const MIN_WEIGHT: f64 = 0.0000000001;
 
@@ -50,9 +51,14 @@ pub fn move_points(points: Vec<Point>, img: &image::DynamicImage) -> Result<Vec<
 
     let (width, height) = img.dimensions();
 
+    let points = points
+        .iter()
+        .map(|p| delaunator::Point { x: p.x, y: p.y })
+        .collect::<Vec<_>>();
+
     let diagram = voronator::VoronoiDiagram::new(
-        &Point { x: 0.0, y: 0.0 },
-        &Point {
+        &delaunator::Point { x: 0.0, y: 0.0 },
+        &delaunator::Point {
             x: width as f64,
             y: height as f64,
         },
@@ -62,7 +68,7 @@ pub fn move_points(points: Vec<Point>, img: &image::DynamicImage) -> Result<Vec<
 
     Ok(diagram
         .cells
-        .iter()
-        .map(|c| weighted_centroid(&c, &img))
+        .into_iter()
+        .map(|c| weighted_centroid(c, &img))
         .collect::<Vec<_>>())
 }

@@ -1,17 +1,5 @@
+use crate::point::Point;
 use log::debug;
-use voronator::delaunator::Point;
-
-trait Metrics {
-    fn distance(&self, other: &Self) -> f64;
-}
-
-impl Metrics for Point {
-    fn distance(&self, other: &Self) -> f64 {
-        let xs = self.x - other.x;
-        let ys = self.y - other.y;
-        ((xs * xs) + (ys * ys)).sqrt()
-    }
-}
 
 fn total_distance(tour: &Vec<Point>) -> f64 {
     tour.windows(2)
@@ -73,8 +61,8 @@ fn optimize_two_opt_tour(tour: Vec<Point>) -> (Vec<Point>, f64) {
                 let mut j = 0;
 
                 while i + j < k - j - 1 {
-                    let tmp = tour[i + j].clone();
-                    tour[i + j] = tour[k - j - 1].clone();
+                    let tmp = tour[i + j];
+                    tour[i + j] = tour[k - j - 1];
                     tour[k - j - 1] = tmp;
                     j += 1;
                 }

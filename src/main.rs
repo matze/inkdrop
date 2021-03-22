@@ -1,8 +1,10 @@
 mod color;
+mod point;
 mod tsp;
 mod voronoi;
 
 use crate::color::{invert, to_black, to_cmyk};
+use crate::point::Point;
 use anyhow::Result;
 use image::io::Reader;
 use image::GenericImageView;
@@ -15,7 +17,6 @@ use svg::node::element::path::Data;
 use svg::node::element::Circle;
 use svg::node::element::Path;
 use svg::Document;
-use voronator::delaunator::Point;
 
 #[derive(StructOpt)]
 pub struct Options {
