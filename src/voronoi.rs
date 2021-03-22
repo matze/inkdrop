@@ -10,7 +10,7 @@ fn weighted_centroid(points: Vec<delaunator::Point>, img: &image::DynamicImage) 
 
     let points = points
         .into_iter()
-        .map(|p| Point::from(p))
+        .map(Point::from)
         .collect::<Vec<_>>();
 
     // Use vertices of the hull as sample points and final weights for the points. However, we
@@ -60,7 +60,7 @@ pub fn move_points(points: Vec<Point>, img: &image::DynamicImage) -> Result<Vec<
         },
         &points,
     )
-    .ok_or(anyhow!("Failed to generate Voronoi diagram"))?;
+    .ok_or_else(|| anyhow!("Failed to generate Voronoi diagram"))?;
 
     Ok(diagram
         .cells

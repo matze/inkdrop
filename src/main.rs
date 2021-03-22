@@ -62,14 +62,14 @@ fn sample_points(img: &image::DynamicImage, opt: &Options) -> Vec<Vec<Point>> {
             let cmyk = invert(to_cmyk(channels[0], channels[1], channels[2]));
 
             for (points, color) in ps.iter_mut().zip(cmyk.iter()) {
-                if &sample >= &color.powf(opt.gamma) {
+                if sample >= color.powf(opt.gamma) {
                     points.push(Point { x, y });
                 }
             }
         } else {
             let black = 1.0 - to_black(channels[0], channels[1], channels[2]);
 
-            if &sample >= &black.powf(opt.gamma) {
+            if sample >= black.powf(opt.gamma) {
                 ps[3].push(Point { x, y });
             }
         }
@@ -79,7 +79,7 @@ fn sample_points(img: &image::DynamicImage, opt: &Options) -> Vec<Vec<Point>> {
 }
 
 fn draw_path(document: Document, tour: Vec<Point>, color: &str) -> Document {
-    if tour.len() == 0 {
+    if tour.is_empty() {
         return document;
     }
 

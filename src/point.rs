@@ -9,7 +9,7 @@ pub struct Point {
 
 impl Point {
     pub fn new(x: f64, y: f64) -> Self {
-        Point { x: x, y: y }
+        Point { x, y }
     }
 
     pub fn origin() -> Self {

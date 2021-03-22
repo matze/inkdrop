@@ -1,7 +1,7 @@
 use crate::point::Point;
 use log::debug;
 
-fn total_distance(tour: &Vec<Point>) -> f64 {
+fn total_distance(tour: &[Point]) -> f64 {
     tour.windows(2)
         .map(|points| points[0].distance(&points[1]))
         .sum()
@@ -11,13 +11,13 @@ pub fn make_nn_tour(points: Vec<Point>) -> Vec<Point> {
     let mut remaining = points;
     let mut tour = Vec::new();
 
-    if remaining.len() == 0 {
+    if remaining.is_empty() {
         return tour;
     }
 
     tour.push(remaining.remove(0));
 
-    while remaining.len() > 0 {
+    while !remaining.is_empty() {
         let mut minimum = f64::MAX;
         let mut index = 0;
         let current = tour.last().unwrap();
@@ -61,9 +61,7 @@ fn optimize_two_opt_tour(tour: Vec<Point>) -> (Vec<Point>, f64) {
                 let mut j = 0;
 
                 while i + j < k - j - 1 {
-                    let tmp = tour[i + j];
-                    tour[i + j] = tour[k - j - 1];
-                    tour[k - j - 1] = tmp;
+                    tour.swap(i + j, k - j - 1);
                     j += 1;
                 }
             }
