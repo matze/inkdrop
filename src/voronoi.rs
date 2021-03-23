@@ -8,18 +8,40 @@ fn weighted_centroid(points: Vec<delaunator::Point>, img: &image::DynamicImage) 
     // Minimum weight to avoid rejecting pure vertices.
     const MIN_WEIGHT: f64 = 0.0000000001;
 
+    let (width, height) = img.dimensions();
+
     let points = points
         .into_iter()
         .map(Point::from)
         .collect::<Vec<_>>();
+
+    let sample_point = |p: &Point| -> f64 {
+        if p.x as u32 >= width - 1 || p.y as u32 >= height - 1 {
+            return 0.0;
+        }
+
+        let x = (p.x - 0.5).floor() as u32;
+        let y = (p.y - 0.5).floor() as u32;
+
+        let c1 = img.get_pixel(x, y);
+        let c2 = img.get_pixel(x + 1, y);
+        let c3 = img.get_pixel(x + 1, y + 1);
+        let c4 = img.get_pixel(x, y + 1);
+
+        let b1 = to_black(c1[0], c1[1], c1[2]) as f64;
+        let b2 = to_black(c2[0], c2[1], c2[2]) as f64;
+        let b3 = to_black(c3[0], c3[1], c3[2]) as f64;
+        let b4 = to_black(c4[0], c4[1], c4[2]) as f64;
+
+        (b1 + b2 + b3 + b4) / 4.0
+    };
 
     // Use vertices of the hull as sample points and final weights for the points. However, we
     // should use the entire cell or image as a density function. In some cases points may wander
     // off ...
     let weights = points
         .iter()
-        .map(|p| img.get_pixel((p.x - 0.001).floor() as u32, (p.y - 0.001).floor() as u32))
-        .map(|c| (to_black(c[0], c[1], c[2]) as f64).clamp(MIN_WEIGHT, 1.0))
+        .map(sample_point)
         .collect::<Vec<_>>();
 
     let center = points.iter().fold(Point::origin(), |acc, p| acc + *p);
