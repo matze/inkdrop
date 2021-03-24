@@ -16,17 +16,19 @@ fn weighted_centroid(points: Vec<delaunator::Point>, img: &image::DynamicImage) 
         .collect::<Vec<_>>();
 
     let sample_point = |p: &Point| -> f64 {
-        if p.x as u32 >= width - 1 || p.y as u32 >= height - 1 {
+        if p.x as u32 == width - 1 || p.y as u32 == height - 1 {
             return 0.0;
         }
 
         let x = (p.x - 0.5).floor() as u32;
         let y = (p.y - 0.5).floor() as u32;
+        let dx = if x == width - 1 { 0 } else { 1 };
+        let dy = if y == height - 1 { 0 } else { 1 };
 
         let c1 = img.get_pixel(x, y);
-        let c2 = img.get_pixel(x + 1, y);
-        let c3 = img.get_pixel(x + 1, y + 1);
-        let c4 = img.get_pixel(x, y + 1);
+        let c2 = img.get_pixel(x + dx, y);
+        let c3 = img.get_pixel(x + dx, y + dy);
+        let c4 = img.get_pixel(x, y + dy);
 
         let b1 = to_black(c1[0], c1[1], c1[2]) as f64;
         let b2 = to_black(c2[0], c2[1], c2[2]) as f64;
