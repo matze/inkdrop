@@ -37,11 +37,15 @@
     <child>
       <object class="GtkPaned">
         <child>
-          <object class="GtkDrawingArea" id="drawing_area">
-            <property name="hexpand">True</property>
-            <property name="vexpand">True</property>
-            <property name="content-width">256</property>
-            <property name="content-height">256</property>
+          <object class="GtkScrolledWindow">
+            <child>
+              <object class="GtkDrawingArea" id="drawing_area">
+                <property name="hexpand">True</property>
+                <property name="vexpand">True</property>
+                <property name="content-width">256</property>
+                <property name="content-height">256</property>
+              </object>
+            </child>
           </object>
         </child>
         <child>
