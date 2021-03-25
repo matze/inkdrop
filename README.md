@@ -57,4 +57,6 @@ gives us the following output:
 
 ### GTK4 user interface
 
-Call `inkdrop-ui` and play around.
+Call `inkdrop-ui` and play around with the same parameters as above.
+
+![Nefertiti GTK4 UI](examples/ui.png)
