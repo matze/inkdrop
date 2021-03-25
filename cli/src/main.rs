@@ -1,13 +1,10 @@
-mod color;
-mod point;
-mod tsp;
-mod voronoi;
-
-use crate::color::{invert, to_black, to_cmyk};
-use crate::point::Point;
 use anyhow::Result;
 use image::io::Reader;
 use image::GenericImageView;
+use inkdrop::color::{invert, to_black, to_cmyk};
+use inkdrop::point::Point;
+use inkdrop::tsp;
+use inkdrop::voronoi;
 use log::info;
 use rand::Rng;
 use rayon::prelude::*;

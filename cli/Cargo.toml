@@ -1,0 +1,18 @@
+[package]
+name = "inkdrop-cli"
+version = "0.1.0"
+authors = ["Matthias Vogelgesang"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = "1"
+image = "0"
+log = "0"
+env_logger = "0"
+rand = "0"
+rayon = "1"
+structopt = { version = "0", default-features = false }
+svg = "0"
+inkdrop = { path = "../lib" }

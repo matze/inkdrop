@@ -237,14 +237,24 @@ name = "inkdrop"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "image",
+ "log",
+ "voronator",
+]
+
+[[package]]
+name = "inkdrop-cli"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
  "env_logger",
  "image",
+ "inkdrop",
  "log",
  "rand",
  "rayon",
  "structopt",
  "svg",
- "voronator",
 ]
 
 [[package]]
