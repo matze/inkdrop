@@ -1,6 +1,6 @@
-use anyhow::Result;
 use crate::application::ExampleApplication;
 use crate::config::{APP_ID, PROFILE};
+use anyhow::Result;
 use glib::clone;
 use glib::signal::Inhibit;
 use gtk::subclass::prelude::*;
@@ -9,8 +9,7 @@ use gtk::{gio, glib, CompositeTemplate};
 use image::io::Reader;
 use image::GenericImageView;
 use log::warn;
-use std::path::Path;
-use std::rc::Rc;
+use std::path::{Path, PathBuf};
 
 mod imp {
     use super::*;
@@ -19,6 +18,8 @@ mod imp {
     #[template(resource = "/net/bloerg/inkdrop/window.ui")]
     pub struct ExampleApplicationWindow {
         #[template_child]
+        pub filename: TemplateChild<gtk::Label>,
+        #[template_child]
         pub drawing_area: TemplateChild<gtk::DrawingArea>,
         #[template_child]
         pub num_points: TemplateChild<gtk::Adjustment>,
@@ -26,7 +27,6 @@ mod imp {
         pub num_voronoi_iterations: TemplateChild<gtk::Adjustment>,
         pub dialog: gtk::FileChooserNative,
         pub settings: gio::Settings,
-        pub points: Rc<Vec<Vec<inkdrop::point::Point>>>,
     }
 
     #[glib::object_subclass]
@@ -45,12 +45,12 @@ mod imp {
                 .build();
 
             Self {
+                filename: TemplateChild::default(),
                 drawing_area: TemplateChild::default(),
                 num_points: TemplateChild::default(),
                 num_voronoi_iterations: TemplateChild::default(),
                 dialog,
                 settings: gio::Settings::new(APP_ID),
-                points: Rc::new(vec![]),
             }
         }
 
@@ -123,6 +123,19 @@ impl ExampleApplicationWindow {
 
         gtk::Window::set_default_icon_name(APP_ID);
 
+        let num_points = &imp::ExampleApplicationWindow::from_instance(&window).num_points;
+
+        num_points.connect_value_changed(
+            clone!(@weak window as win => move |_| { win.update_content(); }),
+        );
+
+        let num_voronoi_iterations =
+            &imp::ExampleApplicationWindow::from_instance(&window).num_voronoi_iterations;
+
+        num_voronoi_iterations.connect_value_changed(
+            clone!(@weak window as win => move |_| { win.update_content(); }),
+        );
+
         window
     }
 
@@ -153,7 +166,16 @@ impl ExampleApplicationWindow {
         }
     }
 
-    fn update_image(&self, path: &Path) {
+    fn update_content(&self) {
+        let filename = &imp::ExampleApplicationWindow::from_instance(self).filename;
+        let filename = filename.get_text();
+
+        if filename == "" {
+            return;
+        }
+
+        let path = PathBuf::from(filename.as_str());
+
         let num_points = &imp::ExampleApplicationWindow::from_instance(self).num_points;
         let num_points = num_points.get_value() as usize;
 
@@ -161,14 +183,16 @@ impl ExampleApplicationWindow {
         let (width, height) = img.dimensions();
         let mut point_sets = inkdrop::sample_points(&img, num_points, 1.0, false);
 
-        let num_iterations = &imp::ExampleApplicationWindow::from_instance(self).num_voronoi_iterations;
+        let num_iterations =
+            &imp::ExampleApplicationWindow::from_instance(self).num_voronoi_iterations;
         let num_iterations = num_iterations.get_value() as usize;
 
         for _ in 0..num_iterations {
             point_sets = point_sets
                 .into_iter()
                 .map(|ps| inkdrop::voronoi::move_points(ps, &img))
-                .collect::<Result<Vec<_>>>().unwrap();
+                .collect::<Result<Vec<_>>>()
+                .unwrap();
         }
 
         let area = &imp::ExampleApplicationWindow::from_instance(self).drawing_area;
@@ -189,5 +213,12 @@ impl ExampleApplicationWindow {
                 }
             }
         });
+    }
+
+    fn update_image(&self, path: &Path) {
+        let filename = &imp::ExampleApplicationWindow::from_instance(self).filename;
+        filename.set_text(&path.to_string_lossy());
+
+        self.update_content();
     }
 }
