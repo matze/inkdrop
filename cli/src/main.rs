@@ -1,12 +1,10 @@
 use anyhow::Result;
 use image::io::Reader;
 use image::GenericImageView;
-use inkdrop::color::{invert, to_black, to_cmyk};
 use inkdrop::point::Point;
 use inkdrop::tsp;
 use inkdrop::voronoi;
 use log::info;
-use rand::Rng;
 use rayon::prelude::*;
 use std::path::PathBuf;
 use structopt::StructOpt;
@@ -40,39 +38,6 @@ pub struct Options {
 
     #[structopt(long)]
     cmyk: bool,
-}
-
-fn sample_points(img: &image::DynamicImage, opt: &Options) -> Vec<Vec<Point>> {
-    let (width, height) = img.dimensions();
-    let mut rng = rand::thread_rng();
-
-    // Store points for each channel
-    let mut ps = vec![Vec::new(), Vec::new(), Vec::new(), Vec::new()];
-
-    while ps.iter().map(|points| points.len()).sum::<usize>() < opt.num_points {
-        let x = rng.gen::<f64>() * width as f64;
-        let y = rng.gen::<f64>() * height as f64;
-        let channels = img.get_pixel(x as u32, y as u32);
-        let sample: f32 = rng.gen();
-
-        if opt.cmyk {
-            let cmyk = invert(to_cmyk(channels[0], channels[1], channels[2]));
-
-            for (points, color) in ps.iter_mut().zip(cmyk.iter()) {
-                if sample >= color.powf(opt.gamma) {
-                    points.push(Point { x, y });
-                }
-            }
-        } else {
-            let black = 1.0 - to_black(channels[0], channels[1], channels[2]);
-
-            if sample >= black.powf(opt.gamma) {
-                ps[3].push(Point { x, y });
-            }
-        }
-    }
-
-    ps
 }
 
 fn draw_path(document: Document, tour: Vec<Point>, color: &str) -> Document {
@@ -122,7 +87,7 @@ fn main() -> Result<()> {
     let mut document = Document::new().set("viewBox", (0, 0, width, height));
 
     info!("Sample points");
-    let mut point_sets: Vec<Vec<Point>> = sample_points(&img, &opt);
+    let mut point_sets = inkdrop::sample_points(&img, opt.num_points, opt.gamma, opt.cmyk);
 
     if opt.voronoi_iterations > 0 {
         info!("Move points");

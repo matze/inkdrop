@@ -1,4 +1,5 @@
 use std::ops::{Add, AddAssign, Div, Mul};
+use std::fmt;
 use voronator::delaunator;
 
 #[derive(Copy, Clone)]
@@ -20,6 +21,15 @@ impl Point {
         let xs = self.x - other.x;
         let ys = self.y - other.y;
         ((xs * xs) + (ys * ys)).sqrt()
+    }
+}
+
+impl fmt::Debug for Point {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Point")
+         .field("x", &self.x)
+         .field("y", &self.y)
+         .finish()
     }
 }
 

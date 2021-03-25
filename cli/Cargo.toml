@@ -9,10 +9,9 @@ edition = "2018"
 [dependencies]
 anyhow = "1"
 image = "0"
+inkdrop = { path = "../lib" }
 log = "0"
 env_logger = "0"
-rand = "0"
 rayon = "1"
 structopt = { version = "0", default-features = false }
 svg = "0"
-inkdrop = { path = "../lib" }

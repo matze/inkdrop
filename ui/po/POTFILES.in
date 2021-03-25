@@ -1,0 +1,5 @@
+data/resources/ui/shortcuts.ui
+data/resources/ui/window.ui.in
+data/net.bloerg.inkdrop.desktop.in.in
+data/net.bloerg.inkdrop.gschema.xml.in
+data/net.bloerg.inkdrop.metainfo.xml.in.in
