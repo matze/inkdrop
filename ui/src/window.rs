@@ -25,6 +25,10 @@ mod imp {
         pub num_points: TemplateChild<gtk::Adjustment>,
         #[template_child]
         pub num_voronoi_iterations: TemplateChild<gtk::Adjustment>,
+        #[template_child]
+        pub draw_paths: TemplateChild<gtk::Switch>,
+        #[template_child]
+        pub tsp_opt: TemplateChild<gtk::Adjustment>,
         pub dialog: gtk::FileChooserNative,
         pub settings: gio::Settings,
     }
@@ -49,6 +53,8 @@ mod imp {
                 drawing_area: TemplateChild::default(),
                 num_points: TemplateChild::default(),
                 num_voronoi_iterations: TemplateChild::default(),
+                draw_paths: TemplateChild::default(),
+                tsp_opt: TemplateChild::default(),
                 dialog,
                 settings: gio::Settings::new(APP_ID),
             }
@@ -195,6 +201,26 @@ impl ExampleApplicationWindow {
                 .unwrap();
         }
 
+        let draw_paths = &imp::ExampleApplicationWindow::from_instance(self).draw_paths;
+        let draw_paths = draw_paths.get_state();
+
+        if draw_paths {
+            point_sets = point_sets
+                .into_iter()
+                .map(|points| inkdrop::tsp::make_nn_tour(points))
+                .collect();
+
+            let tsp_opt = &imp::ExampleApplicationWindow::from_instance(self).tsp_opt;
+            let tsp_opt = tsp_opt.get_value();
+
+            if tsp_opt != 0.0 {
+                point_sets = point_sets
+                    .into_iter()
+                    .map(|points| inkdrop::tsp::optimize(points, tsp_opt))
+                    .collect();
+            }
+        }
+
         let area = &imp::ExampleApplicationWindow::from_instance(self).drawing_area;
         area.set_content_width(width as i32);
         area.set_content_height(height as i32);
@@ -204,12 +230,22 @@ impl ExampleApplicationWindow {
             cr.rectangle(0.0, 0.0, width as f64, height as f64);
             cr.fill();
 
-            for ps in &point_sets {
+            for ps in point_sets.iter().filter(|ps| ps.len() > 1) {
                 cr.set_source_rgba(0.0, 0.0, 0.0, 1.0);
 
-                for point in ps {
-                    cr.arc(point.x, point.y, 1.0, 0.0, 2.0 * 3.1);
-                    cr.fill();
+                if draw_paths {
+                    cr.move_to(ps[0].x, ps[0].y);
+
+                    for point in ps.iter().skip(1) {
+                        cr.line_to(point.x, point.y);
+                    }
+
+                    cr.stroke();
+                } else {
+                    for point in ps {
+                        cr.arc(point.x, point.y, 1.0, 0.0, 2.0 * 3.1);
+                        cr.fill();
+                    }
                 }
             }
         });
