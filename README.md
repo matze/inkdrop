@@ -1,19 +1,23 @@
 ## inkdrop
 
-inkdrop is an artsy bitmap to vector converter. It reads almost any image bitmap
-format via the `--input` parameter and outputs an SVG document given by the
-`--output` parameter. Let's take this image of the Nefertiti bust, cropped and
-the background turned to pure white:
+inkdrop is an artsy bitmap to vector converter. 
+
+### Command line interface
+
+The CLI binary is called `inkdrop-cli` and reads almost any image bitmap format
+via the `--input` parameter and outputs an SVG document given by the `--output`
+parameter. Let's take this image of the Nefertiti bust, cropped and the
+background turned to pure white:
 
 ![Nefertiti input](examples/nofretete.jpg)
 
 Using the `--draw-points` parameter we can output all sampled points. The number
 of sampled points can be controlled with the `--num-points` parameter. Calling
 
-    $ inkdrop --input nofretete.png \
-              --output output.svg \
-              --draw-points \
-              --num-points 20000
+    $ inkdrop-cli --input nofretete.png \
+                  --output output.svg \
+                  --draw-points \
+                  --num-points 20000
 
 gives us
 
@@ -24,10 +28,10 @@ noisy. We can move these initial points using the Weighted Voronoi method.
 Using
 
     $ inkdrop --input nofretete.png \
-              --output output.svg \
-              --draw-points \
-              --num-points 20000 \
-              --voronoi-iterations 100
+                  --output output.svg \
+                  --draw-points \
+                  --num-points 20000 \
+                  --voronoi-iterations 100
 
 we get points that much better reflect the structure of the original image:
 
@@ -40,12 +44,17 @@ ugly most of the time because the path crosses itself. To fix that use the
 until the improvement is not better than the parameter given. So our final
 command line
 
-    $ inkdrop --input nofretete.png \
-              --output output.svg \
-              --num-points 20000 \
-              --voronoi-iterations 100
-              --tsp-improvement 0.001
+    $ inkdrop-cli --input nofretete.png \
+                  --output output.svg \
+                  --num-points 20000 \
+                  --voronoi-iterations 100
+                  --tsp-improvement 0.001
 
 gives us the following output:
 
 ![Nefertiti TSP](examples/nofretete-path-voronoi-100-tsp-001.png)
+
+
+### GTK4 user interface
+
+Call `inkdrop-ui` and play around.
