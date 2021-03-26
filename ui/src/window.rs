@@ -153,22 +153,21 @@ struct DrawRequest {
     width: i32,
     height: i32,
     point_sets: Vec<Vec<Point>>,
-    draw_path: bool,
 }
 
 impl DrawRequest {
-    fn new(width: u32, height: u32, point_sets: Vec<Vec<Point>>, draw_path: bool) -> Self {
+    fn new(width: u32, height: u32, point_sets: Vec<Vec<Point>>) -> Self {
         Self {
             width: width as i32,
             height: height as i32,
             point_sets,
-            draw_path,
         }
     }
 }
 
 enum Message {
-    Draw(DrawRequest),
+    DrawPoints(DrawRequest),
+    DrawPath(DrawRequest),
 }
 
 fn compute_draw_requests(sender: glib::Sender<Message>, request: ComputeRequest) {
@@ -184,36 +183,38 @@ fn compute_draw_requests(sender: glib::Sender<Message>, request: ComputeRequest)
             .collect::<Result<Vec<_>>>()
             .unwrap();
 
-        let _ = sender.send(Message::Draw(DrawRequest::new(w, h, pss.clone(), false)));
+        let _ = sender.send(Message::DrawPoints(DrawRequest::new(w, h, pss.clone())));
     }
 
-    let _ = sender.send(Message::Draw(DrawRequest::new(w, h, pss.clone(), false)));
+    let _ = sender.send(Message::DrawPoints(DrawRequest::new(w, h, pss.clone())));
 
-    if request.draw_path {
-        pss = pss
-            .into_iter()
-            .map(|points| inkdrop::tsp::make_nn_tour(points))
-            .collect();
+    if !request.draw_path {
+        return;
+    }
 
-        let _ = sender.send(Message::Draw(DrawRequest::new(w, h, pss.clone(), true)));
+    pss = pss
+        .into_iter()
+        .map(|points| inkdrop::tsp::make_nn_tour(points))
+        .collect();
 
-        let tsp_opt = request.tsp_opt;
+    let _ = sender.send(Message::DrawPath(DrawRequest::new(w, h, pss.clone())));
 
-        if tsp_opt != 0.0 {
-            loop {
-                let (new_pps, improvements): (Vec<_>, Vec<_>) =
-                    pss.into_iter().map(|ps| inkdrop::tsp::optimize_two_opt_tour(ps)).unzip();
+    let tsp_opt = request.tsp_opt;
 
-                pss = new_pps;
-                let _ = sender.send(Message::Draw(DrawRequest::new(w, h, pss.clone(), true)));
+    if tsp_opt != 0.0 {
+        loop {
+            let (new_pps, improvements): (Vec<_>, Vec<_>) =
+                pss.into_iter().map(|ps| inkdrop::tsp::optimize_two_opt_tour(ps)).unzip();
 
-                if improvements.iter().all(|&i| i < tsp_opt) {
-                    break;
-                }
+            pss = new_pps;
+            let _ = sender.send(Message::DrawPath(DrawRequest::new(w, h, pss.clone())));
+
+            if improvements.iter().all(|&i| i < tsp_opt) {
+                break;
             }
-
-            let _ = sender.send(Message::Draw(DrawRequest::new(w, h, pss.clone(), true)));
         }
+
+        let _ = sender.send(Message::DrawPath(DrawRequest::new(w, h, pss.clone())));
     }
 }
 
@@ -232,8 +233,11 @@ impl ExampleApplicationWindow {
             None,
             clone!(@strong window => move |message| {
                 match message {
-                    Message::Draw(request) => {
-                        window.draw(request);
+                    Message::DrawPoints(request) => {
+                        window.draw_points(request);
+                    },
+                    Message::DrawPath(request) => {
+                        window.draw_path(request);
                     },
                 }
 
@@ -296,7 +300,7 @@ impl ExampleApplicationWindow {
         }
     }
 
-    fn draw(&self, request: DrawRequest) {
+    fn draw_points(&self, request: DrawRequest) {
         let area = &imp::ExampleApplicationWindow::from_instance(self).drawing_area;
         area.set_content_width(request.width);
         area.set_content_height(request.height);
@@ -309,20 +313,34 @@ impl ExampleApplicationWindow {
             for ps in request.point_sets.iter().filter(|ps| ps.len() > 1) {
                 cr.set_source_rgba(0.0, 0.0, 0.0, 1.0);
 
-                if request.draw_path {
-                    cr.move_to(ps[0].x, ps[0].y);
-
-                    for point in ps.iter().skip(1) {
-                        cr.line_to(point.x, point.y);
-                    }
-
-                    cr.stroke();
-                } else {
-                    for point in ps {
-                        cr.arc(point.x, point.y, 1.0, 0.0, 2.0 * 3.1);
-                        cr.fill();
-                    }
+                for point in ps {
+                    cr.arc(point.x, point.y, 1.0, 0.0, 2.0 * 3.1);
+                    cr.fill();
                 }
+            }
+        });
+    }
+
+    fn draw_path(&self, request: DrawRequest) {
+        let area = &imp::ExampleApplicationWindow::from_instance(self).drawing_area;
+        area.set_content_width(request.width);
+        area.set_content_height(request.height);
+
+        area.set_draw_func(move |_, cr, width, height| {
+            cr.set_source_rgba(1.0, 1.0, 1.0, 1.0);
+            cr.rectangle(0.0, 0.0, width as f64, height as f64);
+            cr.fill();
+
+            for ps in request.point_sets.iter().filter(|ps| ps.len() > 1) {
+                cr.set_source_rgba(0.0, 0.0, 0.0, 1.0);
+
+                cr.move_to(ps[0].x, ps[0].y);
+
+                for point in ps.iter().skip(1) {
+                    cr.line_to(point.x, point.y);
+                }
+
+                cr.stroke();
             }
         });
     }
