@@ -199,11 +199,18 @@ fn compute_draw_requests(sender: glib::Sender<Message>, request: ComputeRequest)
 
         let tsp_opt = request.tsp_opt;
 
-        if request.tsp_opt != 0.0 {
-            pss = pss
-                .into_iter()
-                .map(|points| inkdrop::tsp::optimize(points, tsp_opt))
-                .collect();
+        if tsp_opt != 0.0 {
+            loop {
+                let (new_pps, improvements): (Vec<_>, Vec<_>) =
+                    pss.into_iter().map(|ps| inkdrop::tsp::optimize_two_opt_tour(ps)).unzip();
+
+                pss = new_pps;
+                let _ = sender.send(Message::Draw(DrawRequest::new(w, h, pss.clone(), true)));
+
+                if improvements.iter().all(|&i| i < tsp_opt) {
+                    break;
+                }
+            }
 
             let _ = sender.send(Message::Draw(DrawRequest::new(w, h, pss.clone(), true)));
         }

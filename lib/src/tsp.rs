@@ -37,7 +37,7 @@ pub fn make_nn_tour(points: Vec<Point>) -> Vec<Point> {
     tour
 }
 
-fn optimize_two_opt_tour(tour: Vec<Point>) -> (Vec<Point>, f64) {
+pub fn optimize_two_opt_tour(tour: Vec<Point>) -> (Vec<Point>, f64) {
     let len = tour.len();
 
     if len == 0 {
