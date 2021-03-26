@@ -8,8 +8,10 @@ use gtk::{self, prelude::*};
 use gtk::{gio, glib, CompositeTemplate};
 use image::io::Reader;
 use image::GenericImageView;
+use inkdrop::point::Point;
 use log::warn;
 use std::path::{Path, PathBuf};
+use std::thread;
 
 mod imp {
     use super::*;
@@ -121,26 +123,141 @@ glib::wrapper! {
         @extends gtk::Widget, gtk::Window, gtk::ApplicationWindow, @implements gio::ActionMap, gio::ActionGroup;
 }
 
+struct ComputeRequest {
+    filename: String,
+    num_points: usize,
+    num_iterations: usize,
+    draw_path: bool,
+    tsp_opt: f64,
+}
+
+impl ComputeRequest {
+    fn from_window(window: &imp::ExampleApplicationWindow) -> Option<Self> {
+        let filename = window.filename.get_text();
+
+        if filename == "" {
+            return None;
+        }
+
+        Some(Self {
+            filename: filename.to_string(),
+            num_points: window.num_points.get_value() as usize,
+            num_iterations: window.num_voronoi_iterations.get_value() as usize,
+            draw_path: window.draw_paths.get_state(),
+            tsp_opt: window.tsp_opt.get_value(),
+        })
+    }
+}
+
+struct DrawRequest {
+    width: i32,
+    height: i32,
+    point_sets: Vec<Vec<Point>>,
+    draw_path: bool,
+}
+
+impl DrawRequest {
+    fn new(width: u32, height: u32, point_sets: Vec<Vec<Point>>, draw_path: bool) -> Self {
+        Self {
+            width: width as i32,
+            height: height as i32,
+            point_sets,
+            draw_path,
+        }
+    }
+}
+
+enum Message {
+    Draw(DrawRequest),
+}
+
+fn compute_draw_requests(sender: glib::Sender<Message>, request: ComputeRequest) {
+    let path = PathBuf::from(request.filename);
+    let img = Reader::open(path).unwrap().decode().unwrap();
+    let (w, h) = img.dimensions();
+    let mut pss = inkdrop::sample_points(&img, request.num_points, 1.0, false);
+
+    for _ in 0..request.num_iterations {
+        pss = pss
+            .into_iter()
+            .map(|ps| inkdrop::voronoi::move_points(ps, &img))
+            .collect::<Result<Vec<_>>>()
+            .unwrap();
+
+        let _ = sender.send(Message::Draw(DrawRequest::new(w, h, pss.clone(), false)));
+    }
+
+    let _ = sender.send(Message::Draw(DrawRequest::new(w, h, pss.clone(), false)));
+
+    if request.draw_path {
+        pss = pss
+            .into_iter()
+            .map(|points| inkdrop::tsp::make_nn_tour(points))
+            .collect();
+
+        let _ = sender.send(Message::Draw(DrawRequest::new(w, h, pss.clone(), true)));
+
+        let tsp_opt = request.tsp_opt;
+
+        if request.tsp_opt != 0.0 {
+            pss = pss
+                .into_iter()
+                .map(|points| inkdrop::tsp::optimize(points, tsp_opt))
+                .collect();
+
+            let _ = sender.send(Message::Draw(DrawRequest::new(w, h, pss.clone(), true)));
+        }
+    }
+}
+
 impl ExampleApplicationWindow {
     pub fn new(app: &ExampleApplication) -> Self {
         let window: Self =
             glib::Object::new(&[]).expect("Failed to create ExampleApplicationWindow");
+
         window.set_application(Some(app));
 
         gtk::Window::set_default_icon_name(APP_ID);
 
+        let (sender, receiver) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
+
+        receiver.attach(
+            None,
+            clone!(@strong window => move |message| {
+                match message {
+                    Message::Draw(request) => {
+                        window.draw(request);
+                    },
+                }
+
+                glib::Continue(true)
+            }),
+        );
+
         let num_points = &imp::ExampleApplicationWindow::from_instance(&window).num_points;
 
-        num_points.connect_value_changed(
-            clone!(@weak window as win => move |_| { win.update_content(); }),
-        );
+        num_points.connect_value_changed(clone!(@weak window, @strong sender => move |_| {
+            if let Some(request) = ComputeRequest::from_window(&imp::ExampleApplicationWindow::from_instance(&window)) {
+                let sender = sender.clone();
+
+                thread::spawn(move || {
+                    compute_draw_requests(sender, request);
+                });
+            }
+        }));
 
         let num_voronoi_iterations =
             &imp::ExampleApplicationWindow::from_instance(&window).num_voronoi_iterations;
 
-        num_voronoi_iterations.connect_value_changed(
-            clone!(@weak window as win => move |_| { win.update_content(); }),
-        );
+        num_voronoi_iterations.connect_value_changed(clone!(@weak window => move |_| {
+            if let Some(request) = ComputeRequest::from_window(&imp::ExampleApplicationWindow::from_instance(&window)) {
+                let sender = sender.clone();
+
+                thread::spawn(move || {
+                    compute_draw_requests(sender, request);
+                });
+            }
+        }));
 
         window
     }
@@ -172,68 +289,20 @@ impl ExampleApplicationWindow {
         }
     }
 
-    fn update_content(&self) {
-        let filename = &imp::ExampleApplicationWindow::from_instance(self).filename;
-        let filename = filename.get_text();
-
-        if filename == "" {
-            return;
-        }
-
-        let path = PathBuf::from(filename.as_str());
-
-        let num_points = &imp::ExampleApplicationWindow::from_instance(self).num_points;
-        let num_points = num_points.get_value() as usize;
-
-        let img = Reader::open(path).unwrap().decode().unwrap();
-        let (width, height) = img.dimensions();
-        let mut point_sets = inkdrop::sample_points(&img, num_points, 1.0, false);
-
-        let num_iterations =
-            &imp::ExampleApplicationWindow::from_instance(self).num_voronoi_iterations;
-        let num_iterations = num_iterations.get_value() as usize;
-
-        for _ in 0..num_iterations {
-            point_sets = point_sets
-                .into_iter()
-                .map(|ps| inkdrop::voronoi::move_points(ps, &img))
-                .collect::<Result<Vec<_>>>()
-                .unwrap();
-        }
-
-        let draw_paths = &imp::ExampleApplicationWindow::from_instance(self).draw_paths;
-        let draw_paths = draw_paths.get_state();
-
-        if draw_paths {
-            point_sets = point_sets
-                .into_iter()
-                .map(|points| inkdrop::tsp::make_nn_tour(points))
-                .collect();
-
-            let tsp_opt = &imp::ExampleApplicationWindow::from_instance(self).tsp_opt;
-            let tsp_opt = tsp_opt.get_value();
-
-            if tsp_opt != 0.0 {
-                point_sets = point_sets
-                    .into_iter()
-                    .map(|points| inkdrop::tsp::optimize(points, tsp_opt))
-                    .collect();
-            }
-        }
-
+    fn draw(&self, request: DrawRequest) {
         let area = &imp::ExampleApplicationWindow::from_instance(self).drawing_area;
-        area.set_content_width(width as i32);
-        area.set_content_height(height as i32);
+        area.set_content_width(request.width);
+        area.set_content_height(request.height);
 
         area.set_draw_func(move |_, cr, width, height| {
             cr.set_source_rgba(1.0, 1.0, 1.0, 1.0);
             cr.rectangle(0.0, 0.0, width as f64, height as f64);
             cr.fill();
 
-            for ps in point_sets.iter().filter(|ps| ps.len() > 1) {
+            for ps in request.point_sets.iter().filter(|ps| ps.len() > 1) {
                 cr.set_source_rgba(0.0, 0.0, 0.0, 1.0);
 
-                if draw_paths {
+                if request.draw_path {
                     cr.move_to(ps[0].x, ps[0].y);
 
                     for point in ps.iter().skip(1) {
@@ -254,7 +323,5 @@ impl ExampleApplicationWindow {
     fn update_image(&self, path: &Path) {
         let filename = &imp::ExampleApplicationWindow::from_instance(self).filename;
         filename.set_text(&path.to_string_lossy());
-
-        self.update_content();
     }
 }
