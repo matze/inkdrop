@@ -137,12 +137,16 @@ glib::wrapper! {
         @extends gtk::Widget, gtk::Window, gtk::ApplicationWindow, @implements gio::ActionMap, gio::ActionGroup;
 }
 
-struct ComputeRequest {
+struct ComputeParameters {
     filename: String,
     num_points: usize,
     num_iterations: usize,
-    draw_path: bool,
     tsp_opt: f64,
+}
+
+enum ComputeRequest {
+    Points(ComputeParameters),
+    Path(ComputeParameters),
 }
 
 impl ComputeRequest {
@@ -153,61 +157,58 @@ impl ComputeRequest {
             return None;
         }
 
-        Some(Self {
+        let parameters = ComputeParameters {
             filename: filename.to_string(),
             num_points: window.num_points.get_value() as usize,
             num_iterations: window.num_voronoi_iterations.get_value() as usize,
-            draw_path: window.draw_paths.get_state(),
             tsp_opt: window.tsp_opt.get_value(),
-        })
+        };
+
+        if window.draw_paths.get_state() {
+            return Some(Self::Path(parameters));
+        }
+
+        Some(Self::Points(parameters))
     }
 }
 
-struct DrawRequest {
-    width: i32,
-    height: i32,
+#[derive(Clone)]
+struct DrawData {
+    width: u32,
+    height: u32,
     point_sets: Vec<Vec<Point>>,
 }
 
-impl DrawRequest {
+impl DrawData {
     fn new(width: u32, height: u32, point_sets: Vec<Vec<Point>>) -> Self {
         Self {
-            width: width as i32,
-            height: height as i32,
+            width,
+            height,
             point_sets,
         }
     }
 }
 
 #[derive(Clone)]
-struct ComputeResult {
-    width: u32,
-    height: u32,
-    point_sets: Vec<Vec<Point>>,
-    is_path: bool,
-}
-
-impl ComputeResult {
-    fn new(width: u32, height: u32, point_sets: Vec<Vec<Point>>, is_path: bool) -> Self {
-        Self {
-            width,
-            height,
-            point_sets,
-            is_path,
-        }
-    }
+enum ComputeResult {
+    Points(DrawData),
+    Path(DrawData),
 }
 
 enum Message {
-    DrawPoints(DrawRequest),
-    DrawPath(DrawRequest),
+    DrawPoints(DrawData),
+    DrawPath(DrawData),
     ScheduleComputeRequest,
     ComputeFinished(ComputeResult),
     SaveResult,
 }
 
-fn compute_draw_requests(sender: glib::Sender<Message>, request: ComputeRequest) {
-    let path = PathBuf::from(request.filename);
+fn compute_point_distribution(
+    sender: &glib::Sender<Message>,
+    request: &ComputeParameters,
+) -> (u32, u32, Vec<Vec<Point>>) {
+    let sender = sender.clone();
+    let path = PathBuf::from(&request.filename);
     let img = Reader::open(path).unwrap().decode().unwrap();
     let (w, h) = img.dimensions();
     let mut pss = inkdrop::sample_points(&img, request.num_points, 1.0, false);
@@ -220,19 +221,25 @@ fn compute_draw_requests(sender: glib::Sender<Message>, request: ComputeRequest)
             .unwrap();
 
         sender
-            .send(Message::DrawPoints(DrawRequest::new(w, h, pss.clone())))
+            .send(Message::DrawPoints(DrawData::new(w, h, pss.clone())))
             .unwrap();
     }
 
     sender
-        .send(Message::DrawPoints(DrawRequest::new(w, h, pss.clone())))
+        .send(Message::DrawPoints(DrawData::new(w, h, pss.clone())))
         .unwrap();
 
-    if !request.draw_path {
-        let result = ComputeResult::new(w, h, pss, false);
-        sender.send(Message::ComputeFinished(result)).unwrap();
-        return;
-    }
+    (w, h, pss)
+}
+
+fn compute_points_request(sender: glib::Sender<Message>, parameters: ComputeParameters) {
+    let (w, h, pss) = compute_point_distribution(&sender, &parameters);
+    let result = ComputeResult::Points(DrawData::new(w, h, pss));
+    sender.send(Message::ComputeFinished(result)).unwrap();
+}
+
+fn compute_path_request(sender: glib::Sender<Message>, parameters: ComputeParameters) {
+    let (w, h, mut pss) = compute_point_distribution(&sender, &parameters);
 
     pss = pss
         .into_iter()
@@ -240,12 +247,10 @@ fn compute_draw_requests(sender: glib::Sender<Message>, request: ComputeRequest)
         .collect();
 
     sender
-        .send(Message::DrawPath(DrawRequest::new(w, h, pss.clone())))
+        .send(Message::DrawPath(DrawData::new(w, h, pss.clone())))
         .unwrap();
 
-    let tsp_opt = request.tsp_opt;
-
-    if tsp_opt != 0.0 {
+    if parameters.tsp_opt != 0.0 {
         loop {
             let (new_pps, improvements): (Vec<_>, Vec<_>) = pss
                 .into_iter()
@@ -254,20 +259,20 @@ fn compute_draw_requests(sender: glib::Sender<Message>, request: ComputeRequest)
 
             pss = new_pps;
             sender
-                .send(Message::DrawPath(DrawRequest::new(w, h, pss.clone())))
+                .send(Message::DrawPath(DrawData::new(w, h, pss.clone())))
                 .unwrap();
 
-            if improvements.iter().all(|&i| i < tsp_opt) {
+            if improvements.iter().all(|&i| i < parameters.tsp_opt) {
                 break;
             }
         }
 
         sender
-            .send(Message::DrawPath(DrawRequest::new(w, h, pss.clone())))
+            .send(Message::DrawPath(DrawData::new(w, h, pss.clone())))
             .unwrap();
     }
 
-    let result = ComputeResult::new(w, h, pss, true);
+    let result = ComputeResult::Path(DrawData::new(w, h, pss));
     sender.send(Message::ComputeFinished(result)).unwrap();
 }
 
@@ -307,7 +312,10 @@ impl ExampleApplicationWindow {
 
                         request.map(move |request| {
                             thread::spawn(move || {
-                                compute_draw_requests(sender, request);
+                                match request {
+                                    ComputeRequest::Points(p) => { compute_points_request(sender, p); },
+                                    ComputeRequest::Path(p) => { compute_path_request(sender, p); },
+                                }
                             });
                         });
                     },
@@ -325,11 +333,14 @@ impl ExampleApplicationWindow {
                                 if response == gtk::ResponseType::Accept {
                                     let path = dialog.get_file().unwrap().get_path().unwrap();
 
-                                    if result.is_path {
-                                        inkdrop::write_path(&path, &result.point_sets, result.width, result.height).unwrap();
-                                    } else {
-                                        inkdrop::write_points(&path, &result.point_sets, result.width, result.height).unwrap();
-                                    }
+                                    match &result {
+                                        ComputeResult::Points(p) => {
+                                            inkdrop::write_points(&path, &p.point_sets, p.width, p.height).unwrap();
+                                        },
+                                        ComputeResult::Path(p) => {
+                                            inkdrop::write_path(&path, &p.point_sets, p.width, p.height).unwrap();
+                                        },
+                                    };
                                 }
                             }));
 
@@ -400,17 +411,17 @@ impl ExampleApplicationWindow {
         }
     }
 
-    fn draw_points(&self, request: DrawRequest) {
+    fn draw_points(&self, data: DrawData) {
         let area = &imp::ExampleApplicationWindow::from_instance(self).drawing_area;
-        area.set_content_width(request.width);
-        area.set_content_height(request.height);
+        area.set_content_width(data.width as i32);
+        area.set_content_height(data.height as i32);
 
         area.set_draw_func(move |_, cr, width, height| {
             cr.set_source_rgba(1.0, 1.0, 1.0, 1.0);
             cr.rectangle(0.0, 0.0, width as f64, height as f64);
             cr.fill();
 
-            for ps in request.point_sets.iter().filter(|ps| ps.len() > 1) {
+            for ps in data.point_sets.iter().filter(|ps| ps.len() > 1) {
                 cr.set_source_rgba(0.0, 0.0, 0.0, 1.0);
 
                 for point in ps {
@@ -421,17 +432,17 @@ impl ExampleApplicationWindow {
         });
     }
 
-    fn draw_path(&self, request: DrawRequest) {
+    fn draw_path(&self, data: DrawData) {
         let area = &imp::ExampleApplicationWindow::from_instance(self).drawing_area;
-        area.set_content_width(request.width);
-        area.set_content_height(request.height);
+        area.set_content_width(data.width as i32);
+        area.set_content_height(data.height as i32);
 
         area.set_draw_func(move |_, cr, width, height| {
             cr.set_source_rgba(1.0, 1.0, 1.0, 1.0);
             cr.rectangle(0.0, 0.0, width as f64, height as f64);
             cr.fill();
 
-            for ps in request.point_sets.iter().filter(|ps| ps.len() > 1) {
+            for ps in data.point_sets.iter().filter(|ps| ps.len() > 1) {
                 cr.set_source_rgba(0.0, 0.0, 0.0, 1.0);
 
                 cr.move_to(ps[0].x, ps[0].y);
