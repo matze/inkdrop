@@ -1,6 +1,8 @@
 ## inkdrop
 
-inkdrop is an artsy bitmap to vector converter. 
+inkdrop is an artsy bitmap to vector converter.
+
+![Nefertiti GTK4 UI](examples/ui.png)
 
 ### Command line interface
 
@@ -58,5 +60,3 @@ gives us the following output:
 ### GTK4 user interface
 
 Call `inkdrop-ui` and play around with the same parameters as above.
-
-![Nefertiti GTK4 UI](examples/ui.png)
