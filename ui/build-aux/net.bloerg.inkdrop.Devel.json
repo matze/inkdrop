@@ -1,7 +1,7 @@
 {
     "app-id": "net.bloerg.inkdrop.Devel",
     "runtime": "org.gnome.Platform",
-    "runtime-version": "3.38",
+    "runtime-version": "40",
     "sdk": "org.gnome.Sdk",
     "sdk-extensions": ["org.freedesktop.Sdk.Extension.rust-stable"],
     "command": "inkdrop",
@@ -23,71 +23,10 @@
             "--share=network"
         ],
         "env" : {
-            "CARGO_HOME" : "/run/build/inkdrop/cargo",
             "RUST_BACKTRACE": "1",
-            "RUSTFLAGS": "-L=/app/lib"
         }
     },
     "modules": [
-        {
-            "name": "gtk4",
-            "buildsystem": "meson",
-            "config-opts": [
-                "-Ddemos=false",
-                "-Dbuild-examples=false",
-                "-Dbuild-tests=false"
-            ],
-            "sources": [
-                {
-                    "type": "archive",
-                    "url": "https://download.gnome.org/sources/gtk/4.0/gtk-4.0.3.tar.xz",
-                    "sha256": "d7c9893725790b50bd9a3bb278856d9d543b44b6b9b951d7b60e7bdecc131890"
-                }
-            ],
-            "modules": [
-                {
-                    "name": "pango",
-                    "buildsystem": "meson",
-                    "sources": [
-                        {
-                            "type": "archive",
-                            "url": "https://download.gnome.org/sources/pango/1.48/pango-1.48.1.tar.xz",
-                            "sha256": "08c2d550a96559f15fb317d7167b96df57ef743fef946f4e274bd8b6f2918058"
-                        }
-                    ]
-                },
-                {
-                    "name": "libsass",
-                    "sources": [
-                        {
-                            "type": "archive",
-                            "url": "https://github.com/sass/libsass/archive/3.6.4.tar.gz",
-                            "sha256": "f9484d9a6df60576e791566eab2f757a97fd414fce01dd41fc0a693ea5db2889"
-                        },
-                        {
-                            "type": "script",
-                            "dest-filename": "autogen.sh",
-                            "commands": ["autoreconf -si"]
-                        }
-                    ]
-                },
-                {
-                    "name": "sassc",
-                    "sources": [
-                        {
-                            "type": "archive",
-                            "url": "https://github.com/sass/sassc/archive/3.6.1.tar.gz",
-                            "sha256": "8cee391c49a102b4464f86fc40c4ceac3a2ada52a89c4c933d8348e3e4542a60"
-                        },
-                        {
-                            "type": "script",
-                            "dest-filename": "autogen.sh",
-                            "commands": ["autoreconf -si"]
-                        }
-                    ]
-                }
-            ]
-        },
         {
             "name": "inkdrop",
             "buildsystem": "meson",
