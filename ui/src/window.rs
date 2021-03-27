@@ -169,6 +169,8 @@ impl DrawRequest {
 enum Message {
     DrawPoints(DrawRequest),
     DrawPath(DrawRequest),
+    ScheduleComputeRequest,
+    ComputeFinished,
 }
 
 fn compute_draw_requests(sender: glib::Sender<Message>, request: ComputeRequest) {
@@ -184,12 +186,13 @@ fn compute_draw_requests(sender: glib::Sender<Message>, request: ComputeRequest)
             .collect::<Result<Vec<_>>>()
             .unwrap();
 
-        let _ = sender.send(Message::DrawPoints(DrawRequest::new(w, h, pss.clone())));
+        sender.send(Message::DrawPoints(DrawRequest::new(w, h, pss.clone()))).unwrap();
     }
 
-    let _ = sender.send(Message::DrawPoints(DrawRequest::new(w, h, pss.clone())));
+    sender.send(Message::DrawPoints(DrawRequest::new(w, h, pss.clone()))).unwrap();
 
     if !request.draw_path {
+        sender.send(Message::ComputeFinished).unwrap();
         return;
     }
 
@@ -198,7 +201,7 @@ fn compute_draw_requests(sender: glib::Sender<Message>, request: ComputeRequest)
         .map(|points| inkdrop::tsp::make_nn_tour(points))
         .collect();
 
-    let _ = sender.send(Message::DrawPath(DrawRequest::new(w, h, pss.clone())));
+    sender.send(Message::DrawPath(DrawRequest::new(w, h, pss.clone()))).unwrap();
 
     let tsp_opt = request.tsp_opt;
 
@@ -210,15 +213,17 @@ fn compute_draw_requests(sender: glib::Sender<Message>, request: ComputeRequest)
                 .unzip();
 
             pss = new_pps;
-            let _ = sender.send(Message::DrawPath(DrawRequest::new(w, h, pss.clone())));
+            sender.send(Message::DrawPath(DrawRequest::new(w, h, pss.clone()))).unwrap();
 
             if improvements.iter().all(|&i| i < tsp_opt) {
                 break;
             }
         }
 
-        let _ = sender.send(Message::DrawPath(DrawRequest::new(w, h, pss.clone())));
+        sender.send(Message::DrawPath(DrawRequest::new(w, h, pss.clone()))).unwrap();
     }
+
+    sender.send(Message::ComputeFinished).unwrap();
 }
 
 impl ExampleApplicationWindow {
@@ -231,6 +236,9 @@ impl ExampleApplicationWindow {
         gtk::Window::set_default_icon_name(APP_ID);
 
         let (sender, receiver) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
+        let compute_sender = sender.clone();
+
+        let mut compute_ongoing = false;
 
         receiver.attach(
             None,
@@ -242,6 +250,24 @@ impl ExampleApplicationWindow {
                     Message::DrawPath(request) => {
                         window.draw_path(request);
                     },
+                    Message::ScheduleComputeRequest => {
+                        if compute_ongoing {
+                            return glib::Continue(true);
+                        }
+
+                        let request = ComputeRequest::from_window(&imp::ExampleApplicationWindow::from_instance(&window));
+                        let sender = compute_sender.clone();
+                        compute_ongoing = request.is_some();
+
+                        request.map(move |request| {
+                            thread::spawn(move || {
+                                compute_draw_requests(sender, request);
+                            });
+                        });
+                    },
+                    Message::ComputeFinished => {
+                        compute_ongoing = false;
+                    },
                 }
 
                 glib::Continue(true)
@@ -251,38 +277,20 @@ impl ExampleApplicationWindow {
         let filename = &imp::ExampleApplicationWindow::from_instance(&window).filename;
 
         filename.connect_property_label_notify(clone!(@weak window, @strong sender => move |_| {
-            let sender = sender.clone();
-
-            ComputeRequest::from_window(&imp::ExampleApplicationWindow::from_instance(&window)).map(move |request| {
-                thread::spawn(move || {
-                    compute_draw_requests(sender, request);
-                });
-            });
+            sender.clone().send(Message::ScheduleComputeRequest).unwrap();
         }));
 
         let num_points = &imp::ExampleApplicationWindow::from_instance(&window).num_points;
 
         num_points.connect_value_changed(clone!(@weak window, @strong sender => move |_| {
-            let sender = sender.clone();
-
-            ComputeRequest::from_window(&imp::ExampleApplicationWindow::from_instance(&window)).map(move |request| {
-                thread::spawn(move || {
-                    compute_draw_requests(sender, request);
-                });
-            });
+            sender.clone().send(Message::ScheduleComputeRequest).unwrap();
         }));
 
         let num_voronoi_iterations =
             &imp::ExampleApplicationWindow::from_instance(&window).num_voronoi_iterations;
 
         num_voronoi_iterations.connect_value_changed(clone!(@weak window => move |_| {
-            let sender = sender.clone();
-
-            ComputeRequest::from_window(&imp::ExampleApplicationWindow::from_instance(&window)).map(move |request| {
-                thread::spawn(move || {
-                    compute_draw_requests(sender, request);
-                });
-            });
+            sender.clone().send(Message::ScheduleComputeRequest).unwrap();
         }));
 
         window
