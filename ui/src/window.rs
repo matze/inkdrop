@@ -28,6 +28,8 @@ mod imp {
         #[template_child]
         pub num_voronoi_iterations: TemplateChild<gtk::Adjustment>,
         #[template_child]
+        pub button_cmyk: TemplateChild<gtk::ToggleButton>,
+        #[template_child]
         pub button_path: TemplateChild<gtk::ToggleButton>,
         #[template_child]
         pub tsp_opt: TemplateChild<gtk::Adjustment>,
@@ -66,6 +68,7 @@ mod imp {
                 drawing_area: TemplateChild::default(),
                 num_points: TemplateChild::default(),
                 num_voronoi_iterations: TemplateChild::default(),
+                button_cmyk: TemplateChild::default(),
                 button_path: TemplateChild::default(),
                 tsp_opt: TemplateChild::default(),
                 save_button: TemplateChild::default(),
@@ -142,6 +145,7 @@ struct ComputeParameters {
     num_points: usize,
     num_iterations: usize,
     tsp_opt: f64,
+    cmyk: bool,
 }
 
 enum ComputeRequest {
@@ -162,6 +166,7 @@ impl ComputeRequest {
             num_points: window.num_points.get_value() as usize,
             num_iterations: window.num_voronoi_iterations.get_value() as usize,
             tsp_opt: window.tsp_opt.get_value(),
+            cmyk: window.button_cmyk.get_active(),
         };
 
         if window.button_path.get_active() {
@@ -203,17 +208,24 @@ enum Message {
     SaveResult,
 }
 
+const CMYK_AS_RGB: [(f64, f64, f64); 4] = [
+    (0.0, 1.0, 1.0),
+    (1.0, 0.0, 1.0),
+    (1.0, 1.0, 0.0),
+    (0.0, 0.0, 0.0),
+];
+
 fn compute_point_distribution(
     sender: &glib::Sender<Message>,
-    request: &ComputeParameters,
+    parameters: &ComputeParameters,
 ) -> (u32, u32, Vec<Vec<Point>>) {
     let sender = sender.clone();
-    let path = PathBuf::from(&request.filename);
+    let path = PathBuf::from(&parameters.filename);
     let img = Reader::open(path).unwrap().decode().unwrap();
     let (w, h) = img.dimensions();
-    let mut pss = inkdrop::sample_points(&img, request.num_points, 1.0, false);
+    let mut pss = inkdrop::sample_points(&img, parameters.num_points, 1.0, parameters.cmyk);
 
-    for _ in 0..request.num_iterations {
+    for _ in 0..parameters.num_iterations {
         pss = pss
             .into_iter()
             .map(|ps| inkdrop::voronoi::move_points(ps, &img))
@@ -421,10 +433,10 @@ impl ExampleApplicationWindow {
             cr.rectangle(0.0, 0.0, width as f64, height as f64);
             cr.fill();
 
-            for ps in data.point_sets.iter().filter(|ps| ps.len() > 1) {
-                cr.set_source_rgba(0.0, 0.0, 0.0, 1.0);
+            for (points, color) in data.point_sets.iter().zip(CMYK_AS_RGB.iter()) {
+                cr.set_source_rgba(color.0, color.1, color.2, 1.0);
 
-                for point in ps {
+                for point in points {
                     cr.arc(point.x, point.y, 1.0, 0.0, 2.0 * 3.1);
                     cr.fill();
                 }
@@ -442,12 +454,12 @@ impl ExampleApplicationWindow {
             cr.rectangle(0.0, 0.0, width as f64, height as f64);
             cr.fill();
 
-            for ps in data.point_sets.iter().filter(|ps| ps.len() > 1) {
-                cr.set_source_rgba(0.0, 0.0, 0.0, 1.0);
+            for (points, color) in data.point_sets.iter().zip(CMYK_AS_RGB.iter()) {
+                cr.set_source_rgba(color.0, color.1, color.2, 1.0);
 
-                cr.move_to(ps[0].x, ps[0].y);
+                cr.move_to(points[0].x, points[0].y);
 
-                for point in ps.iter().skip(1) {
+                for point in points.iter().skip(1) {
                     cr.line_to(point.x, point.y);
                 }
 
