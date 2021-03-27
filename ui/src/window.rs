@@ -290,8 +290,7 @@ fn compute_path_request(sender: glib::Sender<Message>, parameters: ComputeParame
 
 impl ApplicationWindow {
     pub fn new(app: &Application) -> Self {
-        let window: Self =
-            glib::Object::new(&[]).expect("Failed to create ApplicationWindow");
+        let window: Self = glib::Object::new(&[]).expect("Failed to create ApplicationWindow");
 
         window.set_application(Some(app));
 
@@ -366,30 +365,41 @@ impl ApplicationWindow {
             }),
         );
 
-        let filename = &imp::ApplicationWindow::from_instance(&window).filename;
+        let imp = &imp::ApplicationWindow::from_instance(&window);
 
-        filename.connect_property_label_notify(clone!(@weak window, @strong sender => move |_| {
+        imp.filename.connect_property_label_notify(clone!(@weak window, @strong sender => move |_| {
             sender.clone().send(Message::ScheduleComputeRequest).unwrap();
         }));
 
-        let num_points = &imp::ApplicationWindow::from_instance(&window).num_points;
+        imp.num_points.connect_value_changed(clone!(@weak window, @strong sender => move |_| {
+                sender.clone().send(Message::ScheduleComputeRequest).unwrap();
+            }));
 
-        num_points.connect_value_changed(clone!(@weak window, @strong sender => move |_| {
-            sender.clone().send(Message::ScheduleComputeRequest).unwrap();
-        }));
-
-        let num_voronoi_iterations =
-            &imp::ApplicationWindow::from_instance(&window).num_voronoi_iterations;
-
-        num_voronoi_iterations.connect_value_changed(
+        imp.num_voronoi_iterations.connect_value_changed(
             clone!(@weak window, @strong sender => move |_| {
                 sender.clone().send(Message::ScheduleComputeRequest).unwrap();
             }),
         );
 
-        let save_button = &imp::ApplicationWindow::from_instance(&window).save_button;
+        imp.tsp_opt.connect_value_changed(
+            clone!(@weak window, @strong sender => move |_| {
+                sender.clone().send(Message::ScheduleComputeRequest).unwrap();
+            }),
+        );
 
-        save_button.connect_clicked(clone!(@weak window => move |_| {
+        imp.button_cmyk.connect_toggled(
+            clone!(@weak window, @strong sender => move |_| {
+                sender.clone().send(Message::ScheduleComputeRequest).unwrap();
+            }),
+        );
+
+        imp.button_path.connect_toggled(
+            clone!(@weak window, @strong sender => move |_| {
+                sender.clone().send(Message::ScheduleComputeRequest).unwrap();
+            }),
+        );
+
+        imp.save_button.connect_clicked(clone!(@weak window => move |_| {
             sender.clone().send(Message::SaveResult).unwrap();
         }));
 
