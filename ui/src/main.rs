@@ -4,7 +4,7 @@ mod config;
 mod window;
 
 use anyhow::Result;
-use application::ExampleApplication;
+use application::Application;
 use config::{GETTEXT_PACKAGE, LOCALEDIR, RESOURCES_FILE};
 use gettextrs::*;
 use gtk::gio;
@@ -24,7 +24,7 @@ fn main() -> Result<()> {
     let res = gio::Resource::load(RESOURCES_FILE).expect("Could not load gresource file");
     gio::resources_register(&res);
 
-    let app = ExampleApplication::new();
+    let app = Application::new();
     app.run();
 
     Ok(())

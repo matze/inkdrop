@@ -1,4 +1,4 @@
-use crate::application::ExampleApplication;
+use crate::application::Application;
 use crate::config::{APP_ID, PROFILE};
 use anyhow::Result;
 use glib::clone;
@@ -18,7 +18,7 @@ mod imp {
 
     #[derive(Debug, CompositeTemplate)]
     #[template(resource = "/net/bloerg/inkdrop/window.ui")]
-    pub struct ExampleApplicationWindow {
+    pub struct ApplicationWindow {
         #[template_child]
         pub filename: TemplateChild<gtk::Label>,
         #[template_child]
@@ -41,9 +41,9 @@ mod imp {
     }
 
     #[glib::object_subclass]
-    impl ObjectSubclass for ExampleApplicationWindow {
-        const NAME: &'static str = "ExampleApplicationWindow";
-        type Type = super::ExampleApplicationWindow;
+    impl ObjectSubclass for ApplicationWindow {
+        const NAME: &'static str = "ApplicationWindow";
+        type Type = super::ApplicationWindow;
         type ParentType = gtk::ApplicationWindow;
 
         fn new() -> Self {
@@ -82,12 +82,12 @@ mod imp {
             Self::bind_template(klass);
 
             klass.install_action("win.open", None, move |win, _, _| {
-                let dialog = &imp::ExampleApplicationWindow::from_instance(&win).open_dialog;
+                let dialog = &imp::ApplicationWindow::from_instance(&win).open_dialog;
 
                 dialog.connect_response(clone!(@weak win => move |dialog, response| {
                     if response == gtk::ResponseType::Accept {
                         let path = dialog.get_file().unwrap().get_path().unwrap();
-                        let filename = &imp::ExampleApplicationWindow::from_instance(&win).filename;
+                        let filename = &imp::ApplicationWindow::from_instance(&win).filename;
                         filename.set_text(&path.to_string_lossy());
                     }
                 }));
@@ -103,7 +103,7 @@ mod imp {
         }
     }
 
-    impl ObjectImpl for ExampleApplicationWindow {
+    impl ObjectImpl for ApplicationWindow {
         fn constructed(&self, obj: &Self::Type) {
             self.parent_constructed(obj);
 
@@ -121,8 +121,8 @@ mod imp {
         }
     }
 
-    impl WidgetImpl for ExampleApplicationWindow {}
-    impl WindowImpl for ExampleApplicationWindow {
+    impl WidgetImpl for ApplicationWindow {}
+    impl WindowImpl for ApplicationWindow {
         // save window state on delete event
         fn close_request(&self, obj: &Self::Type) -> Inhibit {
             if let Err(err) = obj.save_window_size() {
@@ -132,11 +132,11 @@ mod imp {
         }
     }
 
-    impl ApplicationWindowImpl for ExampleApplicationWindow {}
+    impl ApplicationWindowImpl for ApplicationWindow {}
 }
 
 glib::wrapper! {
-    pub struct ExampleApplicationWindow(ObjectSubclass<imp::ExampleApplicationWindow>)
+    pub struct ApplicationWindow(ObjectSubclass<imp::ApplicationWindow>)
         @extends gtk::Widget, gtk::Window, gtk::ApplicationWindow, @implements gio::ActionMap, gio::ActionGroup;
 }
 
@@ -154,7 +154,7 @@ enum ComputeRequest {
 }
 
 impl ComputeRequest {
-    fn from_window(window: &imp::ExampleApplicationWindow) -> Option<Self> {
+    fn from_window(window: &imp::ApplicationWindow) -> Option<Self> {
         let filename = window.filename.get_text();
 
         if filename == "" {
@@ -288,10 +288,10 @@ fn compute_path_request(sender: glib::Sender<Message>, parameters: ComputeParame
     sender.send(Message::ComputeFinished(result)).unwrap();
 }
 
-impl ExampleApplicationWindow {
-    pub fn new(app: &ExampleApplication) -> Self {
+impl ApplicationWindow {
+    pub fn new(app: &Application) -> Self {
         let window: Self =
-            glib::Object::new(&[]).expect("Failed to create ExampleApplicationWindow");
+            glib::Object::new(&[]).expect("Failed to create ApplicationWindow");
 
         window.set_application(Some(app));
 
@@ -318,7 +318,7 @@ impl ExampleApplicationWindow {
                             return glib::Continue(true);
                         }
 
-                        let request = ComputeRequest::from_window(&imp::ExampleApplicationWindow::from_instance(&window));
+                        let request = ComputeRequest::from_window(&imp::ApplicationWindow::from_instance(&window));
                         let sender = compute_sender.clone();
                         compute_ongoing = request.is_some();
 
@@ -337,7 +337,7 @@ impl ExampleApplicationWindow {
                     },
                     Message::SaveResult => {
                         if let Some(result) = &compute_result {
-                            let dialog = &imp::ExampleApplicationWindow::from_instance(&window).save_dialog;
+                            let dialog = &imp::ApplicationWindow::from_instance(&window).save_dialog;
 
                             let result = result.clone();
 
@@ -366,20 +366,20 @@ impl ExampleApplicationWindow {
             }),
         );
 
-        let filename = &imp::ExampleApplicationWindow::from_instance(&window).filename;
+        let filename = &imp::ApplicationWindow::from_instance(&window).filename;
 
         filename.connect_property_label_notify(clone!(@weak window, @strong sender => move |_| {
             sender.clone().send(Message::ScheduleComputeRequest).unwrap();
         }));
 
-        let num_points = &imp::ExampleApplicationWindow::from_instance(&window).num_points;
+        let num_points = &imp::ApplicationWindow::from_instance(&window).num_points;
 
         num_points.connect_value_changed(clone!(@weak window, @strong sender => move |_| {
             sender.clone().send(Message::ScheduleComputeRequest).unwrap();
         }));
 
         let num_voronoi_iterations =
-            &imp::ExampleApplicationWindow::from_instance(&window).num_voronoi_iterations;
+            &imp::ApplicationWindow::from_instance(&window).num_voronoi_iterations;
 
         num_voronoi_iterations.connect_value_changed(
             clone!(@weak window, @strong sender => move |_| {
@@ -387,7 +387,7 @@ impl ExampleApplicationWindow {
             }),
         );
 
-        let save_button = &imp::ExampleApplicationWindow::from_instance(&window).save_button;
+        let save_button = &imp::ApplicationWindow::from_instance(&window).save_button;
 
         save_button.connect_clicked(clone!(@weak window => move |_| {
             sender.clone().send(Message::SaveResult).unwrap();
@@ -397,7 +397,7 @@ impl ExampleApplicationWindow {
     }
 
     pub fn save_window_size(&self) -> Result<(), glib::BoolError> {
-        let settings = &imp::ExampleApplicationWindow::from_instance(self).settings;
+        let settings = &imp::ApplicationWindow::from_instance(self).settings;
 
         let size = self.get_default_size();
 
@@ -410,7 +410,7 @@ impl ExampleApplicationWindow {
     }
 
     fn load_window_size(&self) {
-        let settings = &imp::ExampleApplicationWindow::from_instance(self).settings;
+        let settings = &imp::ApplicationWindow::from_instance(self).settings;
 
         let width = settings.get_int("window-width");
         let height = settings.get_int("window-height");
@@ -424,7 +424,7 @@ impl ExampleApplicationWindow {
     }
 
     fn draw_points(&self, data: DrawData) {
-        let area = &imp::ExampleApplicationWindow::from_instance(self).drawing_area;
+        let area = &imp::ApplicationWindow::from_instance(self).drawing_area;
         area.set_content_width(data.width as i32);
         area.set_content_height(data.height as i32);
 
@@ -449,7 +449,7 @@ impl ExampleApplicationWindow {
     }
 
     fn draw_path(&self, data: DrawData) {
-        let area = &imp::ExampleApplicationWindow::from_instance(self).drawing_area;
+        let area = &imp::ApplicationWindow::from_instance(self).drawing_area;
         area.set_content_width(data.width as i32);
         area.set_content_height(data.height as i32);
 
