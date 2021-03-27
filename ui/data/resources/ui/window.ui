@@ -15,7 +15,7 @@
       </item>
     </section>
   </menu>
-  <template class="ExampleApplicationWindow" parent="GtkApplicationWindow">
+  <template class="ApplicationWindow" parent="GtkApplicationWindow">
     <property name="default-width">600</property>
     <property name="default-height">400</property>
     <child type="titlebar">
