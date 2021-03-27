@@ -434,6 +434,10 @@ impl ExampleApplicationWindow {
             cr.fill();
 
             for (points, color) in data.point_sets.iter().zip(CMYK_AS_RGB.iter()) {
+                if points.len() < 1 {
+                    continue;
+                }
+
                 cr.set_source_rgba(color.0, color.1, color.2, 1.0);
 
                 for point in points {
@@ -455,8 +459,11 @@ impl ExampleApplicationWindow {
             cr.fill();
 
             for (points, color) in data.point_sets.iter().zip(CMYK_AS_RGB.iter()) {
-                cr.set_source_rgba(color.0, color.1, color.2, 1.0);
+                if points.len() < 2 {
+                    continue;
+                }
 
+                cr.set_source_rgba(color.0, color.1, color.2, 1.0);
                 cr.move_to(points[0].x, points[0].y);
 
                 for point in points.iter().skip(1) {
