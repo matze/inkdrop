@@ -88,17 +88,13 @@ fn draw_points(document: Document, points: &Vec<point::Point>, color: &str) -> D
     document
 }
 
-fn from_image(img: &image::DynamicImage) -> Document {
-    let (width, height) = img.dimensions();
-    Document::new().set("viewBox", (0, 0, width, height))
-}
-
 pub fn write_path(
-    img: &image::DynamicImage,
     filename: &path::Path,
     point_sets: &Vec<Vec<point::Point>>,
+    width: u32,
+    height: u32,
 ) -> Result<()> {
-    let mut document = from_image(img);
+    let mut document = Document::new().set("viewBox", (0, 0, width, height));
 
     for (path, color) in point_sets.into_iter().zip(COLORS.iter()) {
         document = draw_path(document, path, color);
@@ -110,11 +106,12 @@ pub fn write_path(
 }
 
 pub fn write_points(
-    img: &image::DynamicImage,
     filename: &path::Path,
     point_sets: &Vec<Vec<point::Point>>,
+    width: u32,
+    height: u32,
 ) -> Result<()> {
-    let mut document = from_image(img);
+    let mut document = Document::new().set("viewBox", (0, 0, width, height));
 
     for (points, color) in point_sets.into_iter().zip(COLORS.iter()) {
         document = draw_points(document, points, color);

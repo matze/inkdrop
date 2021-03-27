@@ -1,5 +1,6 @@
 use anyhow::Result;
 use image::io::Reader;
+use image::GenericImageView;
 use inkdrop::point::Point;
 use inkdrop::tsp;
 use inkdrop::voronoi;
@@ -40,6 +41,7 @@ fn main() -> Result<()> {
 
     let opt = Options::from_args();
     let img = Reader::open(&opt.input)?.decode()?;
+    let (width, height) = img.dimensions();
 
     info!("Sample points");
     let mut point_sets = inkdrop::sample_points(&img, opt.num_points, opt.gamma, opt.cmyk);
@@ -56,7 +58,7 @@ fn main() -> Result<()> {
     }
 
     if opt.draw_points {
-        inkdrop::write_points(&img, &opt.output, &point_sets)?;
+        inkdrop::write_points(&opt.output, &point_sets, width, height)?;
     } else {
         info!("Make NN tours");
 
@@ -71,7 +73,7 @@ fn main() -> Result<()> {
             })
             .collect();
 
-        inkdrop::write_path(&img, &opt.output, &tours)?;
+        inkdrop::write_path(&opt.output, &tours, width, height)?;
     }
 
     Ok(())
