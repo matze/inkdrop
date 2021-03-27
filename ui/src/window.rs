@@ -187,6 +187,17 @@ struct ComputeResult {
     is_path: bool,
 }
 
+impl ComputeResult {
+    fn new(width: u32, height: u32, point_sets: Vec<Vec<Point>>, is_path: bool) -> Self {
+        Self {
+            width,
+            height,
+            point_sets,
+            is_path,
+        }
+    }
+}
+
 enum Message {
     DrawPoints(DrawRequest),
     DrawPath(DrawRequest),
@@ -218,12 +229,7 @@ fn compute_draw_requests(sender: glib::Sender<Message>, request: ComputeRequest)
         .unwrap();
 
     if !request.draw_path {
-        let result = ComputeResult {
-            width: w,
-            height: h,
-            point_sets: pss,
-            is_path: false,
-        };
+        let result = ComputeResult::new(w, h, pss, false);
         sender.send(Message::ComputeFinished(result)).unwrap();
         return;
     }
@@ -261,12 +267,7 @@ fn compute_draw_requests(sender: glib::Sender<Message>, request: ComputeRequest)
             .unwrap();
     }
 
-    let result = ComputeResult {
-        width: w,
-        height: h,
-        point_sets: pss,
-        is_path: true,
-    };
+    let result = ComputeResult::new(w, h, pss, true);
     sender.send(Message::ComputeFinished(result)).unwrap();
 }
 
