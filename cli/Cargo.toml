@@ -14,4 +14,3 @@ log = "0"
 env_logger = "0"
 rayon = "1"
 structopt = { version = "0", default-features = false }
-svg = "0"

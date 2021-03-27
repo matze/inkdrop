@@ -661,6 +661,7 @@ dependencies = [
  "image",
  "log",
  "rand",
+ "svg",
  "voronator",
 ]
 
@@ -675,7 +676,6 @@ dependencies = [
  "log",
  "rayon",
  "structopt",
- "svg",
 ]
 
 [[package]]
