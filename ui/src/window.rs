@@ -28,7 +28,7 @@ mod imp {
         #[template_child]
         pub num_voronoi_iterations: TemplateChild<gtk::Adjustment>,
         #[template_child]
-        pub draw_paths: TemplateChild<gtk::Switch>,
+        pub button_path: TemplateChild<gtk::ToggleButton>,
         #[template_child]
         pub tsp_opt: TemplateChild<gtk::Adjustment>,
         #[template_child]
@@ -66,7 +66,7 @@ mod imp {
                 drawing_area: TemplateChild::default(),
                 num_points: TemplateChild::default(),
                 num_voronoi_iterations: TemplateChild::default(),
-                draw_paths: TemplateChild::default(),
+                button_path: TemplateChild::default(),
                 tsp_opt: TemplateChild::default(),
                 save_button: TemplateChild::default(),
                 save_dialog: save_dialog,
@@ -164,7 +164,7 @@ impl ComputeRequest {
             tsp_opt: window.tsp_opt.get_value(),
         };
 
-        if window.draw_paths.get_state() {
+        if window.button_path.get_active() {
             return Some(Self::Path(parameters));
         }
 

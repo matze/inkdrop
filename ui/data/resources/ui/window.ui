@@ -148,7 +148,7 @@
             </child>
             <child>
               <object class="GtkLabel">
-                <property name="label">Draw path</property>
+                <property name="label">Draw options</property>
                 <property name="xalign">0.0</property>
                 <property name="margin-bottom">6</property>
                 <style>
@@ -157,15 +157,60 @@
               </object>
             </child>
             <child>
-              <object class="GtkSwitch" id="draw_paths">
-                <property name="halign">GTK_ALIGN_START</property>
+              <object class="GtkBox">
+                <property name="orientation">GTK_ORIENTATION_HORIZONTAL</property>
+                <property name="spacing">12</property>
                 <property name="margin-bottom">12</property>
+                <child>
+                  <object class="GtkBox">
+                    <style>
+                      <class name="linked"/>
+                      <class name="horizontal"/>
+                    </style>
+                    <property name="orientation">GTK_ORIENTATION_HORIZONTAL</property>
+                    <property name="homogeneous">True</property>
+                    <child>
+                      <object class="GtkToggleButton" id="button_black_white">
+                        <property name="label">B/W</property>
+                        <property name="active">True</property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkToggleButton" id="button_cmyk">
+                        <property name="label">CMYK</property>
+                        <property name="group">button_black_white</property>
+                      </object>
+                    </child>
+                  </object>
+                </child>
+                <child>
+                  <object class="GtkBox">
+                    <style>
+                      <class name="linked"/>
+                      <class name="horizontal"/>
+                    </style>
+                    <property name="orientation">GTK_ORIENTATION_HORIZONTAL</property>
+                    <property name="homogeneous">True</property>
+                    <child>
+                      <object class="GtkToggleButton" id="button_points">
+                        <property name="label">Points</property>
+                        <property name="active">True</property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkToggleButton" id="button_path">
+                        <property name="label">Path</property>
+                        <property name="group">button_points</property>
+                      </object>
+                    </child>
+                  </object>
+                </child>
               </object>
             </child>
             <child>
               <object class="GtkRevealer">
                 <binding name="reveal-child">
-                  <lookup name="active" type="GtkSwitch">draw_paths</lookup>
+                  <lookup name="active" type="GtkToggleButton">button_path</lookup>
                 </binding>
                 <child>
                   <object class="GtkBox">
