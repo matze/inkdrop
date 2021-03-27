@@ -199,6 +199,13 @@
                 </child>
               </object>
             </child>
+            <child>
+              <object class="GtkButton" id="save_button">
+                <property name="halign">GTK_ALIGN_END</property>
+                <property name="icon-name">document-save-as-symbolic</property>
+                <property name="margin-top">24</property>
+              </object>
+            </child>
           </object>
         </child>
       </object>

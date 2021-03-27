@@ -31,7 +31,10 @@ mod imp {
         pub draw_paths: TemplateChild<gtk::Switch>,
         #[template_child]
         pub tsp_opt: TemplateChild<gtk::Adjustment>,
-        pub dialog: gtk::FileChooserNative,
+        #[template_child]
+        pub save_button: TemplateChild<gtk::Button>,
+        pub save_dialog: gtk::FileChooserNative,
+        pub open_dialog: gtk::FileChooserNative,
         pub settings: gio::Settings,
     }
 
@@ -42,11 +45,19 @@ mod imp {
         type ParentType = gtk::ApplicationWindow;
 
         fn new() -> Self {
-            let dialog = gtk::FileChooserNativeBuilder::new()
+            let open_dialog = gtk::FileChooserNativeBuilder::new()
                 .title(&"Open image")
                 .modal(true)
                 .action(gtk::FileChooserAction::Open)
                 .accept_label(&"_Open")
+                .cancel_label(&"_Cancel")
+                .build();
+
+            let save_dialog = gtk::FileChooserNativeBuilder::new()
+                .title(&"Save SVG")
+                .modal(true)
+                .action(gtk::FileChooserAction::Save)
+                .accept_label(&"_Save")
                 .cancel_label(&"_Cancel")
                 .build();
 
@@ -57,7 +68,9 @@ mod imp {
                 num_voronoi_iterations: TemplateChild::default(),
                 draw_paths: TemplateChild::default(),
                 tsp_opt: TemplateChild::default(),
-                dialog,
+                save_button: TemplateChild::default(),
+                save_dialog: save_dialog,
+                open_dialog: open_dialog,
                 settings: gio::Settings::new(APP_ID),
             }
         }
@@ -66,7 +79,7 @@ mod imp {
             Self::bind_template(klass);
 
             klass.install_action("win.open", None, move |win, _, _| {
-                let dialog = &imp::ExampleApplicationWindow::from_instance(&win).dialog;
+                let dialog = &imp::ExampleApplicationWindow::from_instance(&win).open_dialog;
 
                 dialog.connect_response(clone!(@weak win => move |dialog, response| {
                     if response == gtk::ResponseType::Accept {
@@ -166,11 +179,20 @@ impl DrawRequest {
     }
 }
 
+#[derive(Clone)]
+struct ComputeResult {
+    width: u32,
+    height: u32,
+    point_sets: Vec<Vec<Point>>,
+    is_path: bool,
+}
+
 enum Message {
     DrawPoints(DrawRequest),
     DrawPath(DrawRequest),
     ScheduleComputeRequest,
-    ComputeFinished,
+    ComputeFinished(ComputeResult),
+    SaveResult,
 }
 
 fn compute_draw_requests(sender: glib::Sender<Message>, request: ComputeRequest) {
@@ -186,13 +208,23 @@ fn compute_draw_requests(sender: glib::Sender<Message>, request: ComputeRequest)
             .collect::<Result<Vec<_>>>()
             .unwrap();
 
-        sender.send(Message::DrawPoints(DrawRequest::new(w, h, pss.clone()))).unwrap();
+        sender
+            .send(Message::DrawPoints(DrawRequest::new(w, h, pss.clone())))
+            .unwrap();
     }
 
-    sender.send(Message::DrawPoints(DrawRequest::new(w, h, pss.clone()))).unwrap();
+    sender
+        .send(Message::DrawPoints(DrawRequest::new(w, h, pss.clone())))
+        .unwrap();
 
     if !request.draw_path {
-        sender.send(Message::ComputeFinished).unwrap();
+        let result = ComputeResult {
+            width: w,
+            height: h,
+            point_sets: pss,
+            is_path: false,
+        };
+        sender.send(Message::ComputeFinished(result)).unwrap();
         return;
     }
 
@@ -201,7 +233,9 @@ fn compute_draw_requests(sender: glib::Sender<Message>, request: ComputeRequest)
         .map(|points| inkdrop::tsp::make_nn_tour(points))
         .collect();
 
-    sender.send(Message::DrawPath(DrawRequest::new(w, h, pss.clone()))).unwrap();
+    sender
+        .send(Message::DrawPath(DrawRequest::new(w, h, pss.clone())))
+        .unwrap();
 
     let tsp_opt = request.tsp_opt;
 
@@ -213,17 +247,27 @@ fn compute_draw_requests(sender: glib::Sender<Message>, request: ComputeRequest)
                 .unzip();
 
             pss = new_pps;
-            sender.send(Message::DrawPath(DrawRequest::new(w, h, pss.clone()))).unwrap();
+            sender
+                .send(Message::DrawPath(DrawRequest::new(w, h, pss.clone())))
+                .unwrap();
 
             if improvements.iter().all(|&i| i < tsp_opt) {
                 break;
             }
         }
 
-        sender.send(Message::DrawPath(DrawRequest::new(w, h, pss.clone()))).unwrap();
+        sender
+            .send(Message::DrawPath(DrawRequest::new(w, h, pss.clone())))
+            .unwrap();
     }
 
-    sender.send(Message::ComputeFinished).unwrap();
+    let result = ComputeResult {
+        width: w,
+        height: h,
+        point_sets: pss,
+        is_path: true,
+    };
+    sender.send(Message::ComputeFinished(result)).unwrap();
 }
 
 impl ExampleApplicationWindow {
@@ -239,6 +283,7 @@ impl ExampleApplicationWindow {
         let compute_sender = sender.clone();
 
         let mut compute_ongoing = false;
+        let mut compute_result: Option<ComputeResult> = None;
 
         receiver.attach(
             None,
@@ -265,8 +310,31 @@ impl ExampleApplicationWindow {
                             });
                         });
                     },
-                    Message::ComputeFinished => {
+                    Message::ComputeFinished(result) => {
                         compute_ongoing = false;
+                        compute_result = Some(result);
+                    },
+                    Message::SaveResult => {
+                        if let Some(result) = &compute_result {
+                            let dialog = &imp::ExampleApplicationWindow::from_instance(&window).save_dialog;
+
+                            let result = result.clone();
+
+                            dialog.connect_response(clone!(@weak window => move |dialog, response| {
+                                if response == gtk::ResponseType::Accept {
+                                    let path = dialog.get_file().unwrap().get_path().unwrap();
+
+                                    if result.is_path {
+                                        inkdrop::write_path(&path, &result.point_sets, result.width, result.height).unwrap();
+                                    } else {
+                                        inkdrop::write_points(&path, &result.point_sets, result.width, result.height).unwrap();
+                                    }
+                                }
+                            }));
+
+                            dialog.set_transient_for(Some(&window));
+                            dialog.show();
+                        }
                     },
                 }
 
@@ -289,8 +357,16 @@ impl ExampleApplicationWindow {
         let num_voronoi_iterations =
             &imp::ExampleApplicationWindow::from_instance(&window).num_voronoi_iterations;
 
-        num_voronoi_iterations.connect_value_changed(clone!(@weak window => move |_| {
-            sender.clone().send(Message::ScheduleComputeRequest).unwrap();
+        num_voronoi_iterations.connect_value_changed(
+            clone!(@weak window, @strong sender => move |_| {
+                sender.clone().send(Message::ScheduleComputeRequest).unwrap();
+            }),
+        );
+
+        let save_button = &imp::ExampleApplicationWindow::from_instance(&window).save_button;
+
+        save_button.connect_clicked(clone!(@weak window => move |_| {
+            sender.clone().send(Message::SaveResult).unwrap();
         }));
 
         window
