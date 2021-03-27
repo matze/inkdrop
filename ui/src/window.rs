@@ -10,7 +10,7 @@ use image::io::Reader;
 use image::GenericImageView;
 use inkdrop::point::Point;
 use log::warn;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::thread;
 
 mod imp {
@@ -71,7 +71,8 @@ mod imp {
                 dialog.connect_response(clone!(@weak win => move |dialog, response| {
                     if response == gtk::ResponseType::Accept {
                         let path = dialog.get_file().unwrap().get_path().unwrap();
-                        win.update_image(&path);
+                        let filename = &imp::ExampleApplicationWindow::from_instance(&win).filename;
+                        filename.set_text(&path.to_string_lossy());
                     }
                 }));
 
@@ -245,6 +246,18 @@ impl ExampleApplicationWindow {
             }),
         );
 
+        let filename = &imp::ExampleApplicationWindow::from_instance(&window).filename;
+
+        filename.connect_property_label_notify(clone!(@weak window, @strong sender => move |_| {
+            if let Some(request) = ComputeRequest::from_window(&imp::ExampleApplicationWindow::from_instance(&window)) {
+                let sender = sender.clone();
+
+                thread::spawn(move || {
+                    compute_draw_requests(sender, request);
+                });
+            }
+        }));
+
         let num_points = &imp::ExampleApplicationWindow::from_instance(&window).num_points;
 
         num_points.connect_value_changed(clone!(@weak window, @strong sender => move |_| {
@@ -343,10 +356,5 @@ impl ExampleApplicationWindow {
                 cr.stroke();
             }
         });
-    }
-
-    fn update_image(&self, path: &Path) {
-        let filename = &imp::ExampleApplicationWindow::from_instance(self).filename;
-        filename.set_text(&path.to_string_lossy());
     }
 }
