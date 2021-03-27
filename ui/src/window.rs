@@ -204,8 +204,10 @@ fn compute_draw_requests(sender: glib::Sender<Message>, request: ComputeRequest)
 
     if tsp_opt != 0.0 {
         loop {
-            let (new_pps, improvements): (Vec<_>, Vec<_>) =
-                pss.into_iter().map(|ps| inkdrop::tsp::optimize_two_opt_tour(ps)).unzip();
+            let (new_pps, improvements): (Vec<_>, Vec<_>) = pss
+                .into_iter()
+                .map(|ps| inkdrop::tsp::optimize_two_opt_tour(ps))
+                .unzip();
 
             pss = new_pps;
             let _ = sender.send(Message::DrawPath(DrawRequest::new(w, h, pss.clone())));
@@ -249,38 +251,38 @@ impl ExampleApplicationWindow {
         let filename = &imp::ExampleApplicationWindow::from_instance(&window).filename;
 
         filename.connect_property_label_notify(clone!(@weak window, @strong sender => move |_| {
-            if let Some(request) = ComputeRequest::from_window(&imp::ExampleApplicationWindow::from_instance(&window)) {
-                let sender = sender.clone();
+            let sender = sender.clone();
 
+            ComputeRequest::from_window(&imp::ExampleApplicationWindow::from_instance(&window)).map(move |request| {
                 thread::spawn(move || {
                     compute_draw_requests(sender, request);
                 });
-            }
+            });
         }));
 
         let num_points = &imp::ExampleApplicationWindow::from_instance(&window).num_points;
 
         num_points.connect_value_changed(clone!(@weak window, @strong sender => move |_| {
-            if let Some(request) = ComputeRequest::from_window(&imp::ExampleApplicationWindow::from_instance(&window)) {
-                let sender = sender.clone();
+            let sender = sender.clone();
 
+            ComputeRequest::from_window(&imp::ExampleApplicationWindow::from_instance(&window)).map(move |request| {
                 thread::spawn(move || {
                     compute_draw_requests(sender, request);
                 });
-            }
+            });
         }));
 
         let num_voronoi_iterations =
             &imp::ExampleApplicationWindow::from_instance(&window).num_voronoi_iterations;
 
         num_voronoi_iterations.connect_value_changed(clone!(@weak window => move |_| {
-            if let Some(request) = ComputeRequest::from_window(&imp::ExampleApplicationWindow::from_instance(&window)) {
-                let sender = sender.clone();
+            let sender = sender.clone();
 
+            ComputeRequest::from_window(&imp::ExampleApplicationWindow::from_instance(&window)).map(move |request| {
                 thread::spawn(move || {
                     compute_draw_requests(sender, request);
                 });
-            }
+            });
         }));
 
         window
