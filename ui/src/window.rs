@@ -441,7 +441,7 @@ impl ExampleApplicationWindow {
                 cr.set_source_rgba(color.0, color.1, color.2, 1.0);
 
                 for point in points {
-                    cr.arc(point.x, point.y, 1.0, 0.0, 2.0 * 3.1);
+                    cr.arc(point.x, point.y, 1.0, 0.0, 2.0 * std::f64::consts::PI);
                     cr.fill();
                 }
             }
