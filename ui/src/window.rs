@@ -34,6 +34,10 @@ mod imp {
         #[template_child]
         pub tsp_opt: TemplateChild<gtk::Adjustment>,
         #[template_child]
+        pub log_revealer: TemplateChild<gtk::Revealer>,
+        #[template_child]
+        pub log_label: TemplateChild<gtk::Label>,
+        #[template_child]
         pub save_button: TemplateChild<gtk::Button>,
         pub save_dialog: gtk::FileChooserNative,
         pub open_dialog: gtk::FileChooserNative,
@@ -71,6 +75,8 @@ mod imp {
                 button_cmyk: TemplateChild::default(),
                 button_path: TemplateChild::default(),
                 tsp_opt: TemplateChild::default(),
+                log_revealer: TemplateChild::default(),
+                log_label: TemplateChild::default(),
                 save_button: TemplateChild::default(),
                 save_dialog: save_dialog,
                 open_dialog: open_dialog,
@@ -204,6 +210,7 @@ enum Message {
     DrawPoints(DrawData),
     DrawPath(DrawData),
     ScheduleComputeRequest,
+    SetLogMessage(String),
     ComputeFinished(ComputeResult),
     SaveResult,
 }
@@ -223,9 +230,22 @@ fn compute_point_distribution(
     let path = PathBuf::from(&parameters.filename);
     let img = Reader::open(path).unwrap().decode().unwrap();
     let (w, h) = img.dimensions();
+
+    sender
+        .send(Message::SetLogMessage("Sample points".to_string()))
+        .unwrap();
+
     let mut pss = inkdrop::sample_points(&img, parameters.num_points, 1.0, parameters.cmyk);
 
-    for _ in 0..parameters.num_iterations {
+    for i in 0..parameters.num_iterations {
+        sender
+            .send(Message::SetLogMessage(format!(
+                "Voronoi iteration {}/{}",
+                i + 1,
+                parameters.num_iterations
+            )))
+            .unwrap();
+
         pss = pss
             .into_iter()
             .map(|ps| inkdrop::voronoi::move_points(ps, &img))
@@ -260,6 +280,10 @@ fn compute_path_request(sender: glib::Sender<Message>, parameters: ComputeParame
 
     sender
         .send(Message::DrawPath(DrawData::new(w, h, pss.clone())))
+        .unwrap();
+
+    sender
+        .send(Message::SetLogMessage("Improve path".to_string()))
         .unwrap();
 
     if parameters.tsp_opt != 0.0 {
@@ -305,6 +329,8 @@ impl ApplicationWindow {
         receiver.attach(
             None,
             clone!(@strong window => move |message| {
+                let imp = &imp::ApplicationWindow::from_instance(&window);
+
                 match message {
                     Message::DrawPoints(request) => {
                         window.draw_points(request);
@@ -317,7 +343,7 @@ impl ApplicationWindow {
                             return glib::Continue(true);
                         }
 
-                        let request = ComputeRequest::from_window(&imp::ApplicationWindow::from_instance(&window));
+                        let request = ComputeRequest::from_window(imp);
                         let sender = compute_sender.clone();
                         compute_ongoing = request.is_some();
 
@@ -333,10 +359,11 @@ impl ApplicationWindow {
                     Message::ComputeFinished(result) => {
                         compute_ongoing = false;
                         compute_result = Some(result);
+                        imp.log_revealer.set_reveal_child(false);
                     },
                     Message::SaveResult => {
                         if let Some(result) = &compute_result {
-                            let dialog = &imp::ApplicationWindow::from_instance(&window).save_dialog;
+                            let dialog = &imp.save_dialog;
 
                             let result = result.clone();
 
@@ -359,6 +386,10 @@ impl ApplicationWindow {
                             dialog.show();
                         }
                     },
+                    Message::SetLogMessage(message) => {
+                        imp.log_revealer.set_reveal_child(true);
+                        imp.log_label.set_text(&message);
+                    },
                 }
 
                 glib::Continue(true)
@@ -367,11 +398,14 @@ impl ApplicationWindow {
 
         let imp = &imp::ApplicationWindow::from_instance(&window);
 
-        imp.filename.connect_property_label_notify(clone!(@weak window, @strong sender => move |_| {
-            sender.clone().send(Message::ScheduleComputeRequest).unwrap();
-        }));
+        imp.filename.connect_property_label_notify(
+            clone!(@weak window, @strong sender => move |_| {
+                sender.clone().send(Message::ScheduleComputeRequest).unwrap();
+            }),
+        );
 
-        imp.num_points.connect_value_changed(clone!(@weak window, @strong sender => move |_| {
+        imp.num_points
+            .connect_value_changed(clone!(@weak window, @strong sender => move |_| {
                 sender.clone().send(Message::ScheduleComputeRequest).unwrap();
             }));
 
@@ -381,27 +415,25 @@ impl ApplicationWindow {
             }),
         );
 
-        imp.tsp_opt.connect_value_changed(
-            clone!(@weak window, @strong sender => move |_| {
+        imp.tsp_opt
+            .connect_value_changed(clone!(@weak window, @strong sender => move |_| {
                 sender.clone().send(Message::ScheduleComputeRequest).unwrap();
-            }),
-        );
+            }));
 
-        imp.button_cmyk.connect_toggled(
-            clone!(@weak window, @strong sender => move |_| {
+        imp.button_cmyk
+            .connect_toggled(clone!(@weak window, @strong sender => move |_| {
                 sender.clone().send(Message::ScheduleComputeRequest).unwrap();
-            }),
-        );
+            }));
 
-        imp.button_path.connect_toggled(
-            clone!(@weak window, @strong sender => move |_| {
+        imp.button_path
+            .connect_toggled(clone!(@weak window, @strong sender => move |_| {
                 sender.clone().send(Message::ScheduleComputeRequest).unwrap();
-            }),
-        );
+            }));
 
-        imp.save_button.connect_clicked(clone!(@weak window => move |_| {
-            sender.clone().send(Message::SaveResult).unwrap();
-        }));
+        imp.save_button
+            .connect_clicked(clone!(@weak window => move |_| {
+                sender.clone().send(Message::SaveResult).unwrap();
+            }));
 
         window
     }

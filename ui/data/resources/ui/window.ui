@@ -257,6 +257,24 @@
               </object>
             </child>
             <child>
+              <object class="GtkRevealer" id="log_revealer">
+                <child>
+                  <object class="GtkBox">
+                    <property name="orientation">GTK_ORIENTATION_HORIZONTAL</property>
+                    <property name="spacing">6</property>
+                    <child>
+                      <object class="GtkSpinner">
+                        <property name="spinning">True</property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="log_label"></object>
+                    </child>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child>
               <object class="GtkButton" id="save_button">
                 <property name="halign">GTK_ALIGN_END</property>
                 <property name="icon-name">document-save-as-symbolic</property>
