@@ -37,13 +37,31 @@
     <child>
       <object class="GtkPaned">
         <child>
-          <object class="GtkScrolledWindow">
+          <object class="GtkBox">
+            <property name="orientation">GTK_ORIENTATION_VERTICAL</property>
             <child>
-              <object class="GtkDrawingArea" id="drawing_area">
-                <property name="hexpand">True</property>
-                <property name="vexpand">True</property>
-                <property name="content-width">256</property>
-                <property name="content-height">256</property>
+              <object class="GtkInfoBar" id="info_bar">
+                <property name="revealed">False</property>
+                <property name="message-type">GTK_MESSAGE_ERROR</property>
+                <child>
+                  <object class="GtkLabel" id="info_label">
+                    <property name="margin-start">3</property>
+                    <property name="margin-bottom">3</property>
+                    <property name="margin-top">3</property>
+                  </object>
+                </child>
+              </object>
+            </child>
+            <child>
+              <object class="GtkScrolledWindow">
+                <child>
+                  <object class="GtkDrawingArea" id="drawing_area">
+                    <property name="hexpand">True</property>
+                    <property name="vexpand">True</property>
+                    <property name="content-width">256</property>
+                    <property name="content-height">256</property>
+                  </object>
+                </child>
               </object>
             </child>
           </object>

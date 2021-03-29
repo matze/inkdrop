@@ -39,6 +39,10 @@ mod imp {
         pub log_progress_bar: TemplateChild<gtk::ProgressBar>,
         #[template_child]
         pub save_button: TemplateChild<gtk::Button>,
+        #[template_child]
+        pub info_bar: TemplateChild<gtk::InfoBar>,
+        #[template_child]
+        pub info_label: TemplateChild<gtk::Label>,
         pub save_dialog: gtk::FileChooserNative,
         pub open_dialog: gtk::FileChooserNative,
         pub settings: gio::Settings,
@@ -77,6 +81,8 @@ mod imp {
                 tsp_opt: TemplateChild::default(),
                 log_revealer: TemplateChild::default(),
                 log_progress_bar: TemplateChild::default(),
+                info_bar: TemplateChild::default(),
+                info_label: TemplateChild::default(),
                 save_button: TemplateChild::default(),
                 save_dialog: save_dialog,
                 open_dialog: open_dialog,
@@ -213,6 +219,8 @@ enum Message {
     UpdateProgress(String, f64),
     ComputeFinished(ComputeResult),
     SaveResult,
+    ShowError(String),
+    HideInfoBar,
 }
 
 const CMYK_AS_RGB: [(f64, f64, f64); 4] = [
@@ -226,65 +234,55 @@ fn compute_point_distribution(
     sender: &glib::Sender<Message>,
     parameters: &ComputeParameters,
     progress_fraction: f64,
-) -> (u32, u32, Vec<Vec<Point>>) {
+) -> Result<(u32, u32, Vec<Vec<Point>>)> {
     let sender = sender.clone();
     let path = PathBuf::from(&parameters.filename);
-    let img = Reader::open(path).unwrap().decode().unwrap();
+    let img = Reader::open(path).unwrap().decode()?;
     let (w, h) = img.dimensions();
 
-    sender
-        .send(Message::UpdateProgress("Sample points".to_string(), 0.0))
-        .unwrap();
+    sender.send(Message::UpdateProgress("Sample points".to_string(), 0.0))?;
 
     let mut pss = inkdrop::sample_points(&img, parameters.num_points, 1.0, parameters.cmyk);
 
     for i in 0..parameters.num_iterations {
-        sender
-            .send(Message::UpdateProgress(
-                format!("Voronoi iteration {}/{}", i + 1, parameters.num_iterations,),
-                progress_fraction * (i + 1) as f64 / parameters.num_iterations as f64,
-            ))
-            .unwrap();
+        sender.send(Message::UpdateProgress(
+            format!("Voronoi iteration {}/{}", i + 1, parameters.num_iterations,),
+            progress_fraction * (i + 1) as f64 / parameters.num_iterations as f64,
+        ))?;
 
         pss = pss
             .into_iter()
             .map(|ps| inkdrop::voronoi::move_points(ps, &img))
-            .collect::<Result<Vec<_>>>()
-            .unwrap();
+            .collect::<Result<Vec<_>>>()?;
 
-        sender
-            .send(Message::DrawPoints(DrawData::new(w, h, pss.clone())))
-            .unwrap();
+        sender.send(Message::DrawPoints(DrawData::new(w, h, pss.clone())))?;
     }
 
-    sender
-        .send(Message::DrawPoints(DrawData::new(w, h, pss.clone())))
-        .unwrap();
+    sender.send(Message::DrawPoints(DrawData::new(w, h, pss.clone())))?;
 
-    (w, h, pss)
+    Ok((w, h, pss))
 }
 
-fn compute_points_request(sender: glib::Sender<Message>, parameters: ComputeParameters) {
-    let (w, h, pss) = compute_point_distribution(&sender, &parameters, 1.0);
+fn compute_points_request(
+    sender: glib::Sender<Message>,
+    parameters: ComputeParameters,
+) -> Result<()> {
+    let (w, h, pss) = compute_point_distribution(&sender, &parameters, 1.0)?;
     let result = ComputeResult::Points(DrawData::new(w, h, pss));
-    sender.send(Message::ComputeFinished(result)).unwrap();
+    sender.send(Message::ComputeFinished(result))?;
+    Ok(())
 }
 
-fn compute_path_request(sender: glib::Sender<Message>, parameters: ComputeParameters) {
-    let (w, h, mut pss) = compute_point_distribution(&sender, &parameters, 0.3);
+fn compute_path_request(sender: glib::Sender<Message>, parameters: ComputeParameters) -> Result<()> {
+    let (w, h, mut pss) = compute_point_distribution(&sender, &parameters, 0.3)?;
 
     pss = pss
         .into_iter()
         .map(|points| inkdrop::tsp::make_nn_tour(points))
         .collect();
 
-    sender
-        .send(Message::DrawPath(DrawData::new(w, h, pss.clone())))
-        .unwrap();
-
-    sender
-        .send(Message::UpdateProgress("Improve path".to_string(), 0.5))
-        .unwrap();
+    sender.send(Message::DrawPath(DrawData::new(w, h, pss.clone())))?;
+    sender.send(Message::UpdateProgress("Improve path".to_string(), 0.5))?;
 
     if parameters.tsp_opt != 0.0 {
         loop {
@@ -294,9 +292,7 @@ fn compute_path_request(sender: glib::Sender<Message>, parameters: ComputeParame
                 .unzip();
 
             pss = new_pps;
-            sender
-                .send(Message::DrawPath(DrawData::new(w, h, pss.clone())))
-                .unwrap();
+            sender.send(Message::DrawPath(DrawData::new(w, h, pss.clone())))?;
 
             if improvements.iter().all(|&i| i < parameters.tsp_opt) {
                 break;
@@ -304,21 +300,19 @@ fn compute_path_request(sender: glib::Sender<Message>, parameters: ComputeParame
 
             let progress = 1.0 - (improvements.iter().sum::<f64>() / improvements.len() as f64);
 
-            sender
-                .send(Message::UpdateProgress(
-                    "Improve path".to_string(),
-                    progress,
-                ))
-                .unwrap();
+            sender.send(Message::UpdateProgress(
+                "Improve path".to_string(),
+                progress,
+            ))?;
         }
 
-        sender
-            .send(Message::DrawPath(DrawData::new(w, h, pss.clone())))
-            .unwrap();
+        sender.send(Message::DrawPath(DrawData::new(w, h, pss.clone())))?;
     }
 
     let result = ComputeResult::Path(DrawData::new(w, h, pss));
-    sender.send(Message::ComputeFinished(result)).unwrap();
+    sender.send(Message::ComputeFinished(result))?;
+
+    Ok(())
 }
 
 impl ApplicationWindow {
@@ -330,7 +324,7 @@ impl ApplicationWindow {
         gtk::Window::set_default_icon_name(APP_ID);
 
         let (sender, receiver) = glib::MainContext::channel(glib::PRIORITY_DEFAULT);
-        let compute_sender = sender.clone();
+        let message_sender = sender.clone();
 
         let mut compute_ongoing = false;
         let mut compute_result: Option<ComputeResult> = None;
@@ -353,14 +347,20 @@ impl ApplicationWindow {
                         }
 
                         let request = ComputeRequest::from_window(imp);
-                        let sender = compute_sender.clone();
+                        let sender = message_sender.clone();
                         compute_ongoing = request.is_some();
 
                         request.map(move |request| {
                             thread::spawn(move || {
-                                match request {
-                                    ComputeRequest::Points(p) => { compute_points_request(sender, p); },
-                                    ComputeRequest::Path(p) => { compute_path_request(sender, p); },
+                                let error_sender = sender.clone();
+
+                                let result = match request {
+                                    ComputeRequest::Points(p) => { compute_points_request(sender, p) },
+                                    ComputeRequest::Path(p) => { compute_path_request(sender, p) },
+                                };
+
+                                if let Err(err) = result {
+                                    error_sender.send(Message::ShowError(err.to_string())).unwrap();
                                 }
                             });
                         });
@@ -373,7 +373,6 @@ impl ApplicationWindow {
                     Message::SaveResult => {
                         if let Some(result) = &compute_result {
                             let dialog = &imp.save_dialog;
-
                             let result = result.clone();
 
                             dialog.connect_response(clone!(@weak window => move |dialog, response| {
@@ -399,6 +398,19 @@ impl ApplicationWindow {
                         imp.log_revealer.set_reveal_child(true);
                         imp.log_progress_bar.set_fraction(fraction);
                         imp.log_progress_bar.set_text(Some(&message));
+                    },
+                    Message::ShowError(message) => {
+                        imp.info_label.set_text(&message);
+                        imp.info_bar.set_revealed(true);
+                        let sender = message_sender.clone();
+
+                        glib::source::timeout_add_seconds(2, move || {
+                            sender.send(Message::HideInfoBar).unwrap();
+                            glib::Continue(false)
+                        });
+                    },
+                    Message::HideInfoBar => {
+                        imp.info_bar.set_revealed(false);
                     },
                 }
 
