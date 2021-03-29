@@ -259,17 +259,9 @@
             <child>
               <object class="GtkRevealer" id="log_revealer">
                 <child>
-                  <object class="GtkBox">
-                    <property name="orientation">GTK_ORIENTATION_HORIZONTAL</property>
-                    <property name="spacing">6</property>
-                    <child>
-                      <object class="GtkSpinner">
-                        <property name="spinning">True</property>
-                      </object>
-                    </child>
-                    <child>
-                      <object class="GtkLabel" id="log_label"></object>
-                    </child>
+                  <object class="GtkProgressBar" id="log_progress_bar">
+                    <property name="hexpand">True</property>
+                    <property name="show-text">True</property>
                   </object>
                 </child>
               </object>

@@ -36,7 +36,7 @@ mod imp {
         #[template_child]
         pub log_revealer: TemplateChild<gtk::Revealer>,
         #[template_child]
-        pub log_label: TemplateChild<gtk::Label>,
+        pub log_progress_bar: TemplateChild<gtk::ProgressBar>,
         #[template_child]
         pub save_button: TemplateChild<gtk::Button>,
         pub save_dialog: gtk::FileChooserNative,
@@ -76,7 +76,7 @@ mod imp {
                 button_path: TemplateChild::default(),
                 tsp_opt: TemplateChild::default(),
                 log_revealer: TemplateChild::default(),
-                log_label: TemplateChild::default(),
+                log_progress_bar: TemplateChild::default(),
                 save_button: TemplateChild::default(),
                 save_dialog: save_dialog,
                 open_dialog: open_dialog,
@@ -210,7 +210,7 @@ enum Message {
     DrawPoints(DrawData),
     DrawPath(DrawData),
     ScheduleComputeRequest,
-    SetLogMessage(String),
+    UpdateProgress(String, f64),
     ComputeFinished(ComputeResult),
     SaveResult,
 }
@@ -225,6 +225,7 @@ const CMYK_AS_RGB: [(f64, f64, f64); 4] = [
 fn compute_point_distribution(
     sender: &glib::Sender<Message>,
     parameters: &ComputeParameters,
+    progress_fraction: f64,
 ) -> (u32, u32, Vec<Vec<Point>>) {
     let sender = sender.clone();
     let path = PathBuf::from(&parameters.filename);
@@ -232,18 +233,17 @@ fn compute_point_distribution(
     let (w, h) = img.dimensions();
 
     sender
-        .send(Message::SetLogMessage("Sample points".to_string()))
+        .send(Message::UpdateProgress("Sample points".to_string(), 0.0))
         .unwrap();
 
     let mut pss = inkdrop::sample_points(&img, parameters.num_points, 1.0, parameters.cmyk);
 
     for i in 0..parameters.num_iterations {
         sender
-            .send(Message::SetLogMessage(format!(
-                "Voronoi iteration {}/{}",
-                i + 1,
-                parameters.num_iterations
-            )))
+            .send(Message::UpdateProgress(
+                format!("Voronoi iteration {}/{}", i + 1, parameters.num_iterations,),
+                progress_fraction * (i + 1) as f64 / parameters.num_iterations as f64,
+            ))
             .unwrap();
 
         pss = pss
@@ -265,13 +265,13 @@ fn compute_point_distribution(
 }
 
 fn compute_points_request(sender: glib::Sender<Message>, parameters: ComputeParameters) {
-    let (w, h, pss) = compute_point_distribution(&sender, &parameters);
+    let (w, h, pss) = compute_point_distribution(&sender, &parameters, 1.0);
     let result = ComputeResult::Points(DrawData::new(w, h, pss));
     sender.send(Message::ComputeFinished(result)).unwrap();
 }
 
 fn compute_path_request(sender: glib::Sender<Message>, parameters: ComputeParameters) {
-    let (w, h, mut pss) = compute_point_distribution(&sender, &parameters);
+    let (w, h, mut pss) = compute_point_distribution(&sender, &parameters, 0.3);
 
     pss = pss
         .into_iter()
@@ -283,7 +283,7 @@ fn compute_path_request(sender: glib::Sender<Message>, parameters: ComputeParame
         .unwrap();
 
     sender
-        .send(Message::SetLogMessage("Improve path".to_string()))
+        .send(Message::UpdateProgress("Improve path".to_string(), 0.5))
         .unwrap();
 
     if parameters.tsp_opt != 0.0 {
@@ -301,6 +301,15 @@ fn compute_path_request(sender: glib::Sender<Message>, parameters: ComputeParame
             if improvements.iter().all(|&i| i < parameters.tsp_opt) {
                 break;
             }
+
+            let progress = 1.0 - (improvements.iter().sum::<f64>() / improvements.len() as f64);
+
+            sender
+                .send(Message::UpdateProgress(
+                    "Improve path".to_string(),
+                    progress,
+                ))
+                .unwrap();
         }
 
         sender
@@ -386,9 +395,10 @@ impl ApplicationWindow {
                             dialog.show();
                         }
                     },
-                    Message::SetLogMessage(message) => {
+                    Message::UpdateProgress(message, fraction) => {
                         imp.log_revealer.set_reveal_child(true);
-                        imp.log_label.set_text(&message);
+                        imp.log_progress_bar.set_fraction(fraction);
+                        imp.log_progress_bar.set_text(Some(&message));
                     },
                 }
 
