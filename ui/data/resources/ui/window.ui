@@ -69,8 +69,8 @@
         <child>
           <object class="GtkBox">
             <property name="orientation">GTK_ORIENTATION_VERTICAL</property>
-            <property name="margin-top">12</property>
-            <property name="margin-bottom">12</property>
+            <property name="margin-top">18</property>
+            <property name="margin-bottom">18</property>
             <property name="margin-start">12</property>
             <property name="margin-end">12</property>
             <property name="spacing">6</property>
@@ -275,20 +275,19 @@
               </object>
             </child>
             <child>
-              <object class="GtkRevealer" id="log_revealer">
-                <child>
-                  <object class="GtkProgressBar" id="log_progress_bar">
-                    <property name="hexpand">True</property>
-                    <property name="show-text">True</property>
-                  </object>
-                </child>
-              </object>
-            </child>
-            <child>
               <object class="GtkButton" id="save_button">
                 <property name="halign">GTK_ALIGN_END</property>
                 <property name="icon-name">document-save-as-symbolic</property>
                 <property name="margin-top">24</property>
+              </object>
+            </child>
+            <child>
+              <object class="GtkProgressBar" id="log_progress_bar">
+                <property name="visible">False</property>
+                <property name="hexpand">True</property>
+                <property name="vexpand">True</property>
+                <property name="valign">GTK_ALIGN_END</property>
+                <property name="show-text">True</property>
               </object>
             </child>
           </object>

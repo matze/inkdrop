@@ -34,8 +34,6 @@ mod imp {
         #[template_child]
         pub tsp_opt: TemplateChild<gtk::Adjustment>,
         #[template_child]
-        pub log_revealer: TemplateChild<gtk::Revealer>,
-        #[template_child]
         pub log_progress_bar: TemplateChild<gtk::ProgressBar>,
         #[template_child]
         pub save_button: TemplateChild<gtk::Button>,
@@ -79,7 +77,6 @@ mod imp {
                 button_cmyk: TemplateChild::default(),
                 button_path: TemplateChild::default(),
                 tsp_opt: TemplateChild::default(),
-                log_revealer: TemplateChild::default(),
                 log_progress_bar: TemplateChild::default(),
                 info_bar: TemplateChild::default(),
                 info_label: TemplateChild::default(),
@@ -366,9 +363,9 @@ impl ApplicationWindow {
                         });
                     },
                     Message::ComputeFinished(result) => {
+                        imp.log_progress_bar.set_visible(false);
                         compute_ongoing = false;
                         compute_result = Some(result);
-                        imp.log_revealer.set_reveal_child(false);
                     },
                     Message::SaveResult => {
                         if let Some(result) = &compute_result {
@@ -395,7 +392,7 @@ impl ApplicationWindow {
                         }
                     },
                     Message::UpdateProgress(message, fraction) => {
-                        imp.log_revealer.set_reveal_child(true);
+                        imp.log_progress_bar.set_visible(true);
                         imp.log_progress_bar.set_fraction(fraction);
                         imp.log_progress_bar.set_text(Some(&message));
                     },
