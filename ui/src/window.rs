@@ -10,7 +10,9 @@ use image::io::Reader;
 use image::GenericImageView;
 use inkdrop::point::Point;
 use log::warn;
+use std::cell::RefCell;
 use std::path::PathBuf;
+use std::rc::Rc;
 use std::thread;
 
 mod imp {
@@ -43,6 +45,7 @@ mod imp {
         pub info_label: TemplateChild<gtk::Label>,
         pub save_dialog: gtk::FileChooserNative,
         pub open_dialog: gtk::FileChooserNative,
+        pub gesture_drag: gtk::GestureDrag,
         pub settings: gio::Settings,
     }
 
@@ -69,6 +72,10 @@ mod imp {
                 .cancel_label(&"_Cancel")
                 .build();
 
+            let gesture_drag = gtk::GestureDragBuilder::new()
+                .propagation_phase(gtk::PropagationPhase::Bubble)
+                .build();
+
             Self {
                 filename: TemplateChild::default(),
                 drawing_area: TemplateChild::default(),
@@ -81,8 +88,9 @@ mod imp {
                 info_bar: TemplateChild::default(),
                 info_label: TemplateChild::default(),
                 save_button: TemplateChild::default(),
-                save_dialog: save_dialog,
-                open_dialog: open_dialog,
+                save_dialog,
+                open_dialog,
+                gesture_drag,
                 settings: gio::Settings::new(APP_ID),
             }
         }
@@ -270,7 +278,10 @@ fn compute_points_request(
     Ok(())
 }
 
-fn compute_path_request(sender: glib::Sender<Message>, parameters: ComputeParameters) -> Result<()> {
+fn compute_path_request(
+    sender: glib::Sender<Message>,
+    parameters: ComputeParameters,
+) -> Result<()> {
     let (w, h, mut pss) = compute_point_distribution(&sender, &parameters, 0.3)?;
 
     pss = pss
@@ -453,6 +464,36 @@ impl ApplicationWindow {
             .connect_clicked(clone!(@weak window => move |_| {
                 sender.clone().send(Message::SaveResult).unwrap();
             }));
+
+        imp.drawing_area.add_controller(&imp.gesture_drag);
+
+        let offset_x = Rc::new(RefCell::new(0.0));
+        let offset_y = Rc::new(RefCell::new(0.0));
+
+        fn get_viewport(gesture_drag: &gtk::GestureDrag) -> gtk::Viewport {
+            gesture_drag
+                .get_widget()
+                .unwrap()
+                .get_parent()
+                .unwrap()
+                .downcast::<gtk::Viewport>()
+                .unwrap()
+        }
+
+        imp.gesture_drag.connect_drag_update(
+            clone!(@weak offset_x, @weak offset_y => move |gesture_drag, dx, dy| {
+                    let viewport = get_viewport(gesture_drag);
+                    viewport.get_hadjustment().unwrap().set_value(*offset_x.borrow() - dx);
+                    viewport.get_vadjustment().unwrap().set_value(*offset_y.borrow() - dy);
+            }),
+        );
+
+        imp.gesture_drag
+            .connect_drag_begin(move |gesture_drag, _, _| {
+                let view_port = get_viewport(gesture_drag);
+                offset_x.replace(view_port.get_hadjustment().unwrap().get_value());
+                offset_y.replace(view_port.get_vadjustment().unwrap().get_value());
+            });
 
         window
     }
