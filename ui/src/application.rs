@@ -9,7 +9,6 @@ use gtk::{gdk, gio, glib};
 use gtk_macros::action;
 use log::{debug, info};
 use once_cell::sync::OnceCell;
-use std::env;
 
 mod imp {
     use super::*;
@@ -143,8 +142,6 @@ impl Application {
         info!("Inkdrop ({})", config::APP_ID);
         info!("Version: {} ({})", config::VERSION, config::PROFILE);
         info!("Datadir: {}", config::PKGDATADIR);
-
-        let args: Vec<String> = env::args().collect();
-        ApplicationExtManual::run(self, &args);
+        ApplicationExtManual::run(self);
     }
 }
