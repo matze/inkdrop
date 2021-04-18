@@ -389,10 +389,10 @@ impl ApplicationWindow {
 
                                     match &result {
                                         ComputeResult::Points(p) => {
-                                            inkdrop::write_points(&path, &p.point_sets, p.width, p.height).unwrap();
+                                            inkdrop::svg::write_points(&path, &p.point_sets, p.width, p.height).unwrap();
                                         },
                                         ComputeResult::Path(p) => {
-                                            inkdrop::write_path(&path, &p.point_sets, p.width, p.height).unwrap();
+                                            inkdrop::svg::write_path(&path, &p.point_sets, p.width, p.height).unwrap();
                                         },
                                     };
                                 }

@@ -8,7 +8,7 @@ edition = "2018"
 anyhow = "1"
 log = "0.4"
 image = "0"
-inkdrop = { path = "../lib" }
+inkdrop = { path = "../lib", features = ["use-svg"] }
 pretty_env_logger = "0.4"
 gettext-rs = { version = "0.6", features = ["gettext-system"] }
 gtk-macros = "0.2"

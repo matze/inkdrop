@@ -9,7 +9,7 @@ edition = "2018"
 [dependencies]
 anyhow = "1"
 image = "0"
-inkdrop = { path = "../lib" }
+inkdrop = { path = "../lib", features = ["use-svg"] }
 log = "0"
 env_logger = "0"
 rayon = "1"

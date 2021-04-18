@@ -58,7 +58,7 @@ fn main() -> Result<()> {
     }
 
     if opt.draw_points {
-        inkdrop::write_points(&opt.output, &point_sets, width, height)?;
+        inkdrop::svg::write_points(&opt.output, &point_sets, width, height)?;
     } else {
         info!("Make NN tours");
 
@@ -73,7 +73,7 @@ fn main() -> Result<()> {
             })
             .collect();
 
-        inkdrop::write_path(&opt.output, &tours, width, height)?;
+        inkdrop::svg::write_path(&opt.output, &tours, width, height)?;
     }
 
     Ok(())
