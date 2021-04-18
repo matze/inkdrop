@@ -7,7 +7,7 @@ edition = "2018"
 [dependencies]
 anyhow = "1"
 log = "0.4"
-image = "0"
+image = { version = "0", default-features = false, features = ["png", "jpeg"] }
 inkdrop = { path = "../lib", features = ["use-svg"] }
 pretty_env_logger = "0.4"
 gettext-rs = { version = "0.6", features = ["gettext-system"] }
