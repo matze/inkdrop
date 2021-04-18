@@ -1,0 +1,22 @@
+[package]
+name = "inkdrop-web"
+version = "0.1.0"
+authors = ["Matthias Vogelgesang"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+anyhow = "1"
+image = "0"
+inkdrop = { path = "../lib" }
+js-sys = "0.3"
+wasm-bindgen = { version = "0" }
+yew = "0"
+
+# Not a direct dependency but we need to enable js to make inkdrop compile for
+# wasm32-unknown-unknown
+getrandom = { version = "0.2", features = ["js"] }
