@@ -18,7 +18,7 @@ pub enum Request {
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct DoneData {
+pub struct UpdateData {
     pub width: u32,
     pub height: u32,
     pub points: Vec<(f64, f64)>,
@@ -26,7 +26,8 @@ pub struct DoneData {
 
 #[derive(Serialize, Deserialize)]
 pub enum Response {
-    Done(DoneData),
+    Update(UpdateData),
+    Done,
 }
 
 pub enum Msg {}
@@ -35,7 +36,7 @@ pub struct Worker {
     link: AgentLink<Worker>,
 }
 
-impl DoneData {
+impl UpdateData {
     fn from(width: u32, height: u32, point_sets: &Vec<Vec<inkdrop::point::Point>>) -> Self {
         Self {
             width,
@@ -74,7 +75,7 @@ impl Agent for Worker {
 
                 self.link.respond(
                     who,
-                    Response::Done(DoneData::from(width, height, &point_sets)),
+                    Response::Update(UpdateData::from(width, height, &point_sets)),
                 );
 
                 for _ in 0..data.voronoi_iterations {
@@ -86,9 +87,13 @@ impl Agent for Worker {
 
                     self.link.respond(
                         who,
-                        Response::Done(DoneData::from(width, height, &point_sets)),
+                        Response::Update(UpdateData::from(width, height, &point_sets)),
                     );
                 }
+
+                self.link.respond(
+                    who, Response::Done,
+                );
             }
         }
     }

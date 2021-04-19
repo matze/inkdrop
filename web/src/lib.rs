@@ -17,6 +17,8 @@ pub struct Model {
     points: Vec<(f64, f64)>,
     voronoi_iterations: usize,
     worker: Box<dyn Bridge<worker::Worker>>,
+    computing: bool,
+    data: Option<FileData>,
 }
 
 pub enum Msg {
@@ -51,6 +53,8 @@ impl Component for Model {
             points: vec![],
             voronoi_iterations: 0,
             worker,
+            computing: false,
+            data: None,
         }
     }
 
@@ -69,29 +73,29 @@ impl Component for Model {
                 return false;
             }
             Msg::Opened(data) => {
-                let data = worker::ComputeData {
-                    data: data.content,
-                    num_points: self.num_points,
-                    voronoi_iterations: self.voronoi_iterations,
-                };
-
-                self.worker.send(worker::Request::Compute(data));
+                self.data = Some(data);
+                self.maybe_compute();
                 return true;
             }
             Msg::UpdateNumPoints(num) => {
                 self.num_points = num;
-                return true;
+                self.maybe_compute();
+                return false;
             }
             Msg::UpdateVoronoiIterations(num) => {
                 self.voronoi_iterations = num;
-                return true;
+                self.maybe_compute();
+                return false;
             }
             Msg::ResultComputed(response) => {
                 match response {
-                    worker::Response::Done(data) => {
+                    worker::Response::Update(data) => {
                         self.width = data.width;
                         self.height = data.height;
                         self.points = data.points;
+                    }
+                    worker::Response::Done => {
+                        self.computing = false;
                     }
                 }
                 return true;
@@ -148,6 +152,23 @@ impl Component for Model {
                     <label for="num_points">{ self.num_points }</label>
                 </div>
             </div>
+        }
+    }
+}
+
+impl Model {
+    fn maybe_compute(&mut self) {
+        if let Some(data) = self.data.as_ref() {
+            let data = worker::ComputeData {
+                data: data.content.clone(),
+                num_points: self.num_points,
+                voronoi_iterations: self.voronoi_iterations,
+            };
+
+            if !self.computing {
+                self.worker.send(worker::Request::Compute(data));
+                self.computing = true;
+            }
         }
     }
 }
