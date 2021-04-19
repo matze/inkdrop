@@ -1,31 +1,35 @@
-#![recursion_limit = "256"]
+#![recursion_limit = "512"]
 
-use anyhow::Result;
-use image::io::Reader;
-use image::GenericImageView;
-use std::io::Cursor;
-use wasm_bindgen::prelude::*;
+pub mod worker;
+
 use yew::prelude::*;
 use yew::services::reader::{File, FileData, ReaderService, ReaderTask};
+use yew::worker::{Bridge, Bridged};
 use yew::ChangeData;
 
-struct Model {
+pub struct Model {
     link: ComponentLink<Self>,
     tasks: Vec<ReaderTask>,
     reader: ReaderService,
     width: u32,
     height: u32,
-    point_sets: Vec<inkdrop::point::Point>,
+    num_points: usize,
+    points: Vec<(f64, f64)>,
+    voronoi_iterations: usize,
+    worker: Box<dyn Bridge<worker::Worker>>,
 }
 
-enum Msg {
+pub enum Msg {
     Open(Vec<File>),
     Opened(FileData),
+    UpdateNumPoints(usize),
+    UpdateVoronoiIterations(usize),
+    ResultComputed(worker::Response),
 }
 
-fn view_point(point: &inkdrop::point::Point) -> Html {
+fn view_point(point: &(f64, f64)) -> Html {
     html! {
-        <circle cx=point.x cy=point.y r="1" fill="black"/>
+        <circle cx=point.0 cy=point.1 r="1" fill="black"/>
     }
 }
 
@@ -34,13 +38,19 @@ impl Component for Model {
     type Properties = ();
 
     fn create(_: Self::Properties, link: ComponentLink<Self>) -> Self {
+        let callback = link.callback(|r| Msg::ResultComputed(r));
+        let worker = worker::Worker::bridge(callback);
+
         Self {
             link,
             tasks: vec![],
             reader: ReaderService::new(),
             width: 150,
             height: 150,
-            point_sets: vec![],
+            num_points: 1000,
+            points: vec![],
+            voronoi_iterations: 0,
+            worker,
         }
     }
 
@@ -59,30 +69,31 @@ impl Component for Model {
                 return false;
             }
             Msg::Opened(data) => {
-                let image = Reader::new(Cursor::new(data.content))
-                    .with_guessed_format()
-                    .unwrap()
-                    .decode()
-                    .unwrap();
+                let data = worker::ComputeData {
+                    data: data.content,
+                    num_points: self.num_points,
+                    voronoi_iterations: self.voronoi_iterations,
+                };
 
-                let (width, height) = image.dimensions();
-
-                self.width = width;
-                self.height = height;
-
-                let mut point_sets = inkdrop::sample_points(&image, 20000, 1.0, false);
-
-                for _ in 0..10 {
-                    point_sets = point_sets
-                        .into_iter()
-                        .map(|ps| inkdrop::voronoi::move_points(ps, &image))
-                        .collect::<Result<Vec<_>>>()
-                        .unwrap();
+                self.worker.send(worker::Request::Compute(data));
+                return true;
+            }
+            Msg::UpdateNumPoints(num) => {
+                self.num_points = num;
+                return true;
+            }
+            Msg::UpdateVoronoiIterations(num) => {
+                self.voronoi_iterations = num;
+                return true;
+            }
+            Msg::ResultComputed(response) => {
+                match response {
+                    worker::Response::Done(data) => {
+                        self.width = data.width;
+                        self.height = data.height;
+                        self.points = data.points;
+                    }
                 }
-
-                // for now just handle all of colors as black
-                self.point_sets = point_sets.into_iter().flatten().collect();
-
                 return true;
             }
         }
@@ -97,7 +108,7 @@ impl Component for Model {
             <div>
                 <div>
                     <svg width=self.width height=self.height viewBox=format!("0 0 {} {}", self.width, self.height) xmlns="http://www.w3.org/2000/svg">
-                        { self.point_sets.iter().map(view_point).collect::<Html>() }
+                        { self.points.iter().map(view_point).collect::<Html>() }
                     </svg>
                 </div>
                 <input type="file" onchange=self.link.callback(move |value| {
@@ -113,14 +124,30 @@ impl Component for Model {
                     }
 
                     Msg::Open(result)
-                })
-                />
+                })/>
+
+                <div>
+                    <input type="range" id="voronoi_iterations" min="0" max="100" step="1" value=self.voronoi_iterations onchange=self.link.callback(move |value| {
+                        if let ChangeData::Value(value) = value {
+                            return Msg::UpdateVoronoiIterations(value.parse::<usize>().unwrap());
+                        }
+
+                        Msg::UpdateVoronoiIterations(0)
+                    })/>
+                    <label for="voronoi_iterations">{ self.voronoi_iterations }</label>
+                </div>
+
+                <div>
+                    <input type="range" id="num_points" min="1000" max="100000" step="1" value=self.num_points onchange=self.link.callback(move |value| {
+                        if let ChangeData::Value(value) = value {
+                            return Msg::UpdateNumPoints(value.parse::<usize>().unwrap());
+                        }
+
+                        Msg::UpdateNumPoints(1000)
+                    })/>
+                    <label for="num_points">{ self.num_points }</label>
+                </div>
             </div>
         }
     }
-}
-
-#[wasm_bindgen(start)]
-pub fn run_app() {
-    App::<Model>::new().mount_to_body();
 }

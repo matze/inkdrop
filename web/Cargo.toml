@@ -1,19 +1,23 @@
 [package]
-name = "inkdrop-web"
+name = "web"
 version = "0.1.0"
 authors = ["Matthias Vogelgesang"]
 edition = "2018"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[[bin]]
+name = "app"
+path = "src/bin/app.rs"
 
-[lib]
-crate-type = ["cdylib", "rlib"]
+[[bin]]
+name = "worker"
+path = "src/bin/worker.rs"
 
 [dependencies]
 anyhow = "1"
 image = { version = "0", default-features = false, features = ["png", "jpeg"] }
 inkdrop = { path = "../lib" }
 js-sys = "0.3"
+serde = { version = "1", features = ["derive"] }
 wasm-bindgen = { version = "0" }
 yew = "0"
 

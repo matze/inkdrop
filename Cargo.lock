@@ -829,19 +829,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "inkdrop-web"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "getrandom",
- "image",
- "inkdrop",
- "js-sys",
- "wasm-bindgen",
- "yew",
-]
-
-[[package]]
 name = "itertools"
 version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1613,6 +1600,20 @@ name = "wasm-bindgen-shared"
 version = "0.2.73"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d9a543ae66aa233d14bb765ed9af4a33e81b8b58d1584cf1b47ff8cd0b9e4489"
+
+[[package]]
+name = "web"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "getrandom",
+ "image",
+ "inkdrop",
+ "js-sys",
+ "serde",
+ "wasm-bindgen",
+ "yew",
+]
 
 [[package]]
 name = "web-sys"
