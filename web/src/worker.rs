@@ -35,6 +35,16 @@ pub struct Worker {
     link: AgentLink<Worker>,
 }
 
+impl DoneData {
+    fn from(width: u32, height: u32, point_sets: &Vec<Vec<inkdrop::point::Point>>) -> Self {
+        Self {
+            width,
+            height,
+            points: point_sets.iter().flatten().map(|p| (p.x, p.y)).collect(),
+        }
+    }
+}
+
 impl Agent for Worker {
     type Reach = Public<Self>;
     type Message = Msg;
@@ -59,9 +69,13 @@ impl Agent for Worker {
                     .unwrap();
 
                 let (width, height) = image.dimensions();
-                yew::services::ConsoleService::info(&format!("{} {}", width, height));
 
                 let mut point_sets = inkdrop::sample_points(&image, data.num_points, 1.0, false);
+
+                self.link.respond(
+                    who,
+                    Response::Done(DoneData::from(width, height, &point_sets)),
+                );
 
                 for _ in 0..data.voronoi_iterations {
                     point_sets = point_sets
@@ -69,19 +83,12 @@ impl Agent for Worker {
                         .map(|ps| inkdrop::voronoi::move_points(ps, &image))
                         .collect::<Result<Vec<_>>>()
                         .unwrap();
+
+                    self.link.respond(
+                        who,
+                        Response::Done(DoneData::from(width, height, &point_sets)),
+                    );
                 }
-
-                let result = DoneData {
-                    width,
-                    height,
-                    points: point_sets
-                        .iter()
-                        .flatten()
-                        .map(|p| (p.x, p.y))
-                        .collect(),
-                };
-
-                self.link.respond(who, Response::Done(result));
             }
         }
     }
