@@ -10,6 +10,7 @@ pub struct ComputeData {
     pub data: Vec<u8>,
     pub num_points: usize,
     pub voronoi_iterations: usize,
+    pub compute_path: bool,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -26,7 +27,8 @@ pub struct UpdateData {
 
 #[derive(Serialize, Deserialize)]
 pub enum Response {
-    Update(UpdateData),
+    Points(UpdateData),
+    Path(UpdateData),
     Done,
 }
 
@@ -75,7 +77,7 @@ impl Agent for Worker {
 
                 self.link.respond(
                     who,
-                    Response::Update(UpdateData::from(width, height, &point_sets)),
+                    Response::Points(UpdateData::from(width, height, &point_sets)),
                 );
 
                 for _ in 0..data.voronoi_iterations {
@@ -87,13 +89,37 @@ impl Agent for Worker {
 
                     self.link.respond(
                         who,
-                        Response::Update(UpdateData::from(width, height, &point_sets)),
+                        Response::Points(UpdateData::from(width, height, &point_sets)),
                     );
                 }
 
-                self.link.respond(
-                    who, Response::Done,
-                );
+                if data.compute_path {
+                    point_sets = point_sets
+                        .into_iter()
+                        .map(|p| inkdrop::tsp::make_nn_tour(p))
+                        .collect();
+
+                    self.link.respond(
+                        who,
+                        Response::Path(UpdateData::from(width, height, &point_sets)),
+                    );
+
+                    for _ in 0..8 {
+                        let (optimized, _): (Vec<_>, Vec<_>) = point_sets
+                            .into_iter()
+                            .map(|ps| inkdrop::tsp::optimize_two_opt_tour(ps))
+                            .unzip();
+
+                        point_sets = optimized;
+
+                        self.link.respond(
+                            who,
+                            Response::Path(UpdateData::from(width, height, &point_sets)),
+                        );
+                    }
+                }
+
+                self.link.respond(who, Response::Done);
             }
         }
     }
