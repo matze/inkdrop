@@ -1,0 +1,24 @@
+input[type="range"]::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border: 2px solid #cfd4c5;
+  background-color: #2d7dd2;
+}
+
+input[type="range"]:disabled::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border: 2px solid #cfd4c5;
+  background-color: #edf2ef;
+}
+
+input[type="range"]::-moz-range-track {
+  width: 100%;
+  background-color: #edf2ef;
+}
+
+input[type="range"]:disabled::-moz-range-track {
+  width: 100%;
+  background: transparent;
+  background-color: #edf2ef;
+}

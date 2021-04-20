@@ -131,7 +131,14 @@ impl Component for Model {
                 })/>
 
                 <div>
-                    <input type="range" id="voronoi_iterations" min="0" max="100" step="1" value=self.voronoi_iterations onchange=self.link.callback(move |value| {
+                    <input type="range"
+                        id="voronoi_iterations"
+                        min="0"
+                        max="100"
+                        step="1"
+                        value=self.voronoi_iterations
+                        disabled=self.computing
+                        onchange=self.link.callback(move |value| {
                         if let ChangeData::Value(value) = value {
                             return Msg::UpdateVoronoiIterations(value.parse::<usize>().unwrap());
                         }
@@ -142,7 +149,14 @@ impl Component for Model {
                 </div>
 
                 <div>
-                    <input type="range" id="num_points" min="1000" max="100000" step="1" value=self.num_points onchange=self.link.callback(move |value| {
+                    <input type="range"
+                        id="num_points"
+                        min="1000"
+                        max="100000"
+                        step="1"
+                        value=self.num_points
+                        disabled=self.computing
+                        onchange=self.link.callback(move |value| {
                         if let ChangeData::Value(value) = value {
                             return Msg::UpdateNumPoints(value.parse::<usize>().unwrap());
                         }
