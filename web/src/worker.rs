@@ -11,6 +11,7 @@ pub struct ComputeData {
     pub num_points: usize,
     pub voronoi_iterations: usize,
     pub compute_path: bool,
+    pub tsp_iterations: usize,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -104,7 +105,7 @@ impl Agent for Worker {
                         Response::Path(UpdateData::from(width, height, &point_sets)),
                     );
 
-                    for _ in 0..8 {
+                    for _ in 0..data.tsp_iterations {
                         let (optimized, _): (Vec<_>, Vec<_>) = point_sets
                             .into_iter()
                             .map(|ps| inkdrop::tsp::optimize_two_opt_tour(ps))

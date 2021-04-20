@@ -1,4 +1,4 @@
-#![recursion_limit = "512"]
+#![recursion_limit = "1024"]
 
 pub mod worker;
 
@@ -25,6 +25,7 @@ pub struct Model {
     computing: bool,
     data: Option<FileData>,
     draw_path: bool,
+    tsp_iterations: usize,
 }
 
 pub enum Msg {
@@ -32,6 +33,7 @@ pub enum Msg {
     Opened(FileData),
     UpdateNumPoints(usize),
     UpdateVoronoiIterations(usize),
+    UpdateTspIterations(usize),
     ResultComputed(worker::Response),
     UpdateDrawStyle,
 }
@@ -77,6 +79,7 @@ impl Component for Model {
             computing: false,
             data: None,
             draw_path: false,
+            tsp_iterations: 5,
         }
     }
 
@@ -109,8 +112,14 @@ impl Component for Model {
                 self.maybe_compute();
                 return true;
             }
+            Msg::UpdateTspIterations(num) => {
+                self.tsp_iterations = num;
+                self.maybe_compute();
+                return true;
+            }
             Msg::UpdateDrawStyle => {
                 self.draw_path = !self.draw_path;
+                self.maybe_compute();
                 return true;
             }
             Msg::ResultComputed(response) => {
@@ -225,6 +234,24 @@ impl Component for Model {
                     />
                     <label for="path">{ "Path" }</label>
                 </div>
+
+                <div>
+                    <input type="range"
+                        id="tsp_iterations"
+                        min="0"
+                        max="20"
+                        step="1"
+                        value=self.tsp_iterations
+                        disabled={ self.computing || !self.draw_path }
+                        onchange=self.link.callback(move |value| {
+                        if let ChangeData::Value(value) = value {
+                            return Msg::UpdateTspIterations(value.parse::<usize>().unwrap());
+                        }
+
+                        Msg::UpdateTspIterations(0)
+                    })/>
+                    <label for="tsp_iterations">{ self.tsp_iterations }</label>
+                </div>
             </div>
         }
     }
@@ -239,6 +266,7 @@ impl Model {
                     num_points: self.num_points,
                     voronoi_iterations: self.voronoi_iterations,
                     compute_path: self.draw_path,
+                    tsp_iterations: self.tsp_iterations,
                 };
 
                 self.worker.send(worker::Request::Compute(data));
