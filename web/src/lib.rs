@@ -172,14 +172,14 @@ impl Component for Model {
 
 impl Model {
     fn maybe_compute(&mut self) {
-        if let Some(data) = self.data.as_ref() {
-            let data = worker::ComputeData {
-                data: data.content.clone(),
-                num_points: self.num_points,
-                voronoi_iterations: self.voronoi_iterations,
-            };
+        if !self.computing {
+            if let Some(data) = self.data.as_ref() {
+                let data = worker::ComputeData {
+                    data: data.content.clone(),
+                    num_points: self.num_points,
+                    voronoi_iterations: self.voronoi_iterations,
+                };
 
-            if !self.computing {
                 self.worker.send(worker::Request::Compute(data));
                 self.computing = true;
             }
