@@ -80,12 +80,12 @@ impl Component for Model {
             Msg::UpdateNumPoints(num) => {
                 self.num_points = num;
                 self.maybe_compute();
-                return false;
+                return true;
             }
             Msg::UpdateVoronoiIterations(num) => {
                 self.voronoi_iterations = num;
                 self.maybe_compute();
-                return false;
+                return true;
             }
             Msg::ResultComputed(response) => {
                 match response {
