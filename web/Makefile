@@ -14,6 +14,8 @@ release:
 	cargo build $(CARGO_OPTS) --release --bin worker
 	wasm-bindgen $(WASM_APP_OPTS) --out-name app $(WASM_TARGET_PATH)/release/app.wasm
 	wasm-bindgen $(WASM_WORKER_OPTS) --out-name worker $(WASM_TARGET_PATH)/release/worker.wasm
+	wasm-opt -Os static/app_bg.wasm -o static/app_bg.wasm
+	wasm-opt -Os static/worker_bg.wasm -o static/worker_bg.wasm
 
 dev:
 	cargo build $(CARGO_OPTS) --bin app
