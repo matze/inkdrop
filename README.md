@@ -1,8 +1,9 @@
 ## inkdrop
 
-inkdrop is an artsy bitmap to vector converter.
+inkdrop is an artsy bitmap to vector converter controlled via a GTK4 or [web UI](https://matze.github.io/inkdrop).
 
 ![Nefertiti GTK4 UI](examples/ui.png)
+
 
 ### Command line interface
 
@@ -60,3 +61,10 @@ gives us the following output:
 ### GTK4 user interface
 
 Call `inkdrop-ui` and play around with the same parameters as above.
+
+
+### Web user interface
+
+The `web` crate contains a web app based on [Yew](https://yew.rs) with a demo
+hosted [here](https://matze.github.io/inkdrop). Run `make` and serve the content
+with a server of your choice. `python -m http.server` could be a simple option.
