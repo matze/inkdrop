@@ -103,7 +103,7 @@ mod imp {
 
                 dialog.connect_response(clone!(@weak win => move |dialog, response| {
                     if response == gtk::ResponseType::Accept {
-                        let path = dialog.get_file().unwrap().get_path().unwrap();
+                        let path = dialog.file().unwrap().path().unwrap();
                         let filename = &imp::ApplicationWindow::from_instance(&win).filename;
                         filename.set_text(&path.to_string_lossy());
                     }
@@ -125,12 +125,12 @@ mod imp {
             self.parent_constructed(obj);
 
             let builder = gtk::Builder::from_resource("/net/bloerg/inkdrop/shortcuts.ui");
-            let shortcuts = builder.get_object("shortcuts").unwrap();
+            let shortcuts = builder.object("shortcuts").unwrap();
             obj.set_help_overlay(Some(&shortcuts));
 
             // Devel Profile
             if PROFILE == "Devel" {
-                obj.get_style_context().add_class("devel");
+                obj.style_context().add_class("devel");
             }
 
             // load latest window state
@@ -172,7 +172,7 @@ enum ComputeRequest {
 
 impl ComputeRequest {
     fn from_window(window: &imp::ApplicationWindow) -> Option<Self> {
-        let filename = window.filename.get_text();
+        let filename = window.filename.text();
 
         if filename == "" {
             return None;
@@ -180,13 +180,13 @@ impl ComputeRequest {
 
         let parameters = ComputeParameters {
             filename: filename.to_string(),
-            num_points: window.num_points.get_value() as usize,
-            num_iterations: window.num_voronoi_iterations.get_value() as usize,
-            tsp_opt: window.tsp_opt.get_value(),
-            cmyk: window.button_cmyk.get_active(),
+            num_points: window.num_points.value() as usize,
+            num_iterations: window.num_voronoi_iterations.value() as usize,
+            tsp_opt: window.tsp_opt.value(),
+            cmyk: window.button_cmyk.is_active(),
         };
 
-        if window.button_path.get_active() {
+        if window.button_path.is_active() {
             return Some(Self::Path(parameters));
         }
 
@@ -385,7 +385,7 @@ impl ApplicationWindow {
 
                             dialog.connect_response(clone!(@weak window => move |dialog, response| {
                                 if response == gtk::ResponseType::Accept {
-                                    let path = dialog.get_file().unwrap().get_path().unwrap();
+                                    let path = dialog.file().unwrap().path().unwrap();
 
                                     match &result {
                                         ComputeResult::Points(p) => {
@@ -472,9 +472,9 @@ impl ApplicationWindow {
 
         fn get_viewport(gesture_drag: &gtk::GestureDrag) -> gtk::Viewport {
             gesture_drag
-                .get_widget()
+                .widget()
                 .unwrap()
-                .get_parent()
+                .parent()
                 .unwrap()
                 .downcast::<gtk::Viewport>()
                 .unwrap()
@@ -483,16 +483,16 @@ impl ApplicationWindow {
         imp.gesture_drag.connect_drag_update(
             clone!(@weak offset_x, @weak offset_y => move |gesture_drag, dx, dy| {
                     let viewport = get_viewport(gesture_drag);
-                    viewport.get_hadjustment().unwrap().set_value(*offset_x.borrow() - dx);
-                    viewport.get_vadjustment().unwrap().set_value(*offset_y.borrow() - dy);
+                    viewport.hadjustment().unwrap().set_value(*offset_x.borrow() - dx);
+                    viewport.vadjustment().unwrap().set_value(*offset_y.borrow() - dy);
             }),
         );
 
         imp.gesture_drag
             .connect_drag_begin(move |gesture_drag, _, _| {
                 let view_port = get_viewport(gesture_drag);
-                offset_x.replace(view_port.get_hadjustment().unwrap().get_value());
-                offset_y.replace(view_port.get_vadjustment().unwrap().get_value());
+                offset_x.replace(view_port.hadjustment().unwrap().value());
+                offset_y.replace(view_port.vadjustment().unwrap().value());
             });
 
         window
@@ -501,7 +501,7 @@ impl ApplicationWindow {
     pub fn save_window_size(&self) -> Result<(), glib::BoolError> {
         let settings = &imp::ApplicationWindow::from_instance(self).settings;
 
-        let size = self.get_default_size();
+        let size = self.default_size();
 
         settings.set_int("window-width", size.0)?;
         settings.set_int("window-height", size.1)?;
@@ -514,9 +514,9 @@ impl ApplicationWindow {
     fn load_window_size(&self) {
         let settings = &imp::ApplicationWindow::from_instance(self).settings;
 
-        let width = settings.get_int("window-width");
-        let height = settings.get_int("window-height");
-        let is_maximized = settings.get_boolean("is-maximized");
+        let width = settings.int("window-width");
+        let height = settings.int("window-height");
+        let is_maximized = settings.boolean("is-maximized");
 
         self.set_default_size(width, height);
 
