@@ -428,7 +428,7 @@ impl ApplicationWindow {
 
         let imp = &imp::ApplicationWindow::from_instance(&window);
 
-        imp.filename.connect_property_label_notify(
+        imp.filename.connect_label_notify(
             clone!(@weak window, @strong sender => move |_| {
                 sender.clone().send(Message::ScheduleComputeRequest).unwrap();
             }),
@@ -533,7 +533,7 @@ impl ApplicationWindow {
         area.set_draw_func(move |_, cr, width, height| {
             cr.set_source_rgba(1.0, 1.0, 1.0, 1.0);
             cr.rectangle(0.0, 0.0, width as f64, height as f64);
-            cr.fill();
+            cr.fill().expect("cannot fill");
 
             for (points, color) in data.point_sets.iter().zip(CMYK_AS_RGB.iter()) {
                 if points.len() < 1 {
@@ -544,7 +544,7 @@ impl ApplicationWindow {
 
                 for point in points {
                     cr.arc(point.x, point.y, 1.0, 0.0, 2.0 * std::f64::consts::PI);
-                    cr.fill();
+                    cr.fill().expect("cannot fill");
                 }
             }
         });
@@ -558,7 +558,7 @@ impl ApplicationWindow {
         area.set_draw_func(move |_, cr, width, height| {
             cr.set_source_rgba(1.0, 1.0, 1.0, 1.0);
             cr.rectangle(0.0, 0.0, width as f64, height as f64);
-            cr.fill();
+            cr.fill().expect("cannot fill");
 
             for (points, color) in data.point_sets.iter().zip(CMYK_AS_RGB.iter()) {
                 if points.len() < 2 {
@@ -572,7 +572,7 @@ impl ApplicationWindow {
                     cr.line_to(point.x, point.y);
                 }
 
-                cr.stroke();
+                cr.stroke().expect("cannot stroke");
             }
         });
     }
