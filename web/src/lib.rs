@@ -15,7 +15,6 @@ enum ComputeResult {
 pub struct Model {
     link: ComponentLink<Self>,
     tasks: Vec<ReaderTask>,
-    reader: ReaderService,
     width: u32,
     height: u32,
     num_points: usize,
@@ -40,7 +39,7 @@ pub enum Msg {
 
 fn view_point(point: &(f64, f64)) -> Html {
     html! {
-        <circle cx=point.0 cy=point.1 r="1" fill="black"/>
+        <circle cx=point.0.to_string() cy=point.1.to_string() r="1" fill="black"/>
     }
 }
 
@@ -69,7 +68,6 @@ impl Component for Model {
         Self {
             link,
             tasks: vec![],
-            reader: ReaderService::new(),
             width: 150,
             height: 150,
             num_points: 1000,
@@ -89,7 +87,7 @@ impl Component for Model {
                 for file in files.into_iter() {
                     let task = {
                         let callback = self.link.callback(Msg::Opened);
-                        self.reader.read_file(file, callback).unwrap()
+                        ReaderService::read_file(file, callback).unwrap()
                     };
 
                     self.tasks.push(task);
@@ -151,7 +149,7 @@ impl Component for Model {
         html! {
             <div>
                 <div>
-                    <svg width=self.width height=self.height viewBox=format!("0 0 {} {}", self.width, self.height) xmlns="http://www.w3.org/2000/svg">
+                    <svg width=self.width.to_string() height=self.height.to_string() viewBox=format!("0 0 {} {}", self.width, self.height) xmlns="http://www.w3.org/2000/svg">
                     {
                         match &self.result {
                             ComputeResult::Points(p) => {
@@ -185,7 +183,7 @@ impl Component for Model {
                         min="0"
                         max="100"
                         step="1"
-                        value=self.voronoi_iterations
+                        value=self.voronoi_iterations.to_string()
                         disabled=self.computing
                         onchange=self.link.callback(move |value| {
                         if let ChangeData::Value(value) = value {
@@ -203,7 +201,7 @@ impl Component for Model {
                         min="1000"
                         max="100000"
                         step="1"
-                        value=self.num_points
+                        value=self.num_points.to_string()
                         disabled=self.computing
                         onchange=self.link.callback(move |value| {
                         if let ChangeData::Value(value) = value {
@@ -241,7 +239,7 @@ impl Component for Model {
                         min="0"
                         max="20"
                         step="1"
-                        value=self.tsp_iterations
+                        value=self.tsp_iterations.to_string()
                         disabled={ self.computing || !self.draw_path }
                         onchange=self.link.callback(move |value| {
                         if let ChangeData::Value(value) = value {
