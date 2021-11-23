@@ -1488,9 +1488,12 @@ checksum = "5fecdca9a5291cc2b8dcf7dc02453fee791a280f3743cb0905f8822ae463b3fe"
 
 [[package]]
 name = "voronator"
-version = "0.1.0"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "695b8a6a698cbb0178ff795f20973991b527a966a63f4db6008906b79528e77e"
+checksum = "5b0f1ef1abe8dd4bc04ef6cde7f364b658deca388e9f272fb273baea01f2ecf7"
+dependencies = [
+ "rayon",
+]
 
 [[package]]
 name = "wasi"

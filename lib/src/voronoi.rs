@@ -4,7 +4,7 @@ use anyhow::{anyhow, Result};
 use image::GenericImageView;
 use voronator::delaunator;
 
-fn weighted_centroid(points: Vec<delaunator::Point>, img: &image::DynamicImage) -> Point {
+fn weighted_centroid(points: &[delaunator::Point], img: &image::DynamicImage) -> Point {
     // Minimum weight to avoid rejecting pure vertices.
     const MIN_WEIGHT: f64 = 0.0000000001;
 
@@ -87,8 +87,8 @@ pub fn move_points(points: Vec<Point>, img: &image::DynamicImage) -> Result<Vec<
     .ok_or_else(|| anyhow!("Failed to generate Voronoi diagram"))?;
 
     Ok(diagram
-        .cells
-        .into_iter()
-        .map(|c| weighted_centroid(c, &img))
+        .cells()
+        .iter()
+        .map(|c| weighted_centroid(c.points(), &img))
         .collect::<Vec<_>>())
 }
