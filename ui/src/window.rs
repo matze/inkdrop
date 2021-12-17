@@ -1,6 +1,7 @@
 use crate::application::Application;
 use crate::config::{APP_ID, PROFILE};
 use anyhow::Result;
+use adw::subclass::prelude::*;
 use glib::clone;
 use glib::signal::Inhibit;
 use gtk::subclass::prelude::*;
@@ -53,10 +54,10 @@ mod imp {
     impl ObjectSubclass for ApplicationWindow {
         const NAME: &'static str = "ApplicationWindow";
         type Type = super::ApplicationWindow;
-        type ParentType = gtk::ApplicationWindow;
+        type ParentType = adw::ApplicationWindow;
 
         fn new() -> Self {
-            let open_dialog = gtk::FileChooserNativeBuilder::new()
+            let open_dialog = gtk::builders::FileChooserNativeBuilder::new()
                 .title(&"Open image")
                 .modal(true)
                 .action(gtk::FileChooserAction::Open)
@@ -64,7 +65,7 @@ mod imp {
                 .cancel_label(&"_Cancel")
                 .build();
 
-            let save_dialog = gtk::FileChooserNativeBuilder::new()
+            let save_dialog = gtk::builders::FileChooserNativeBuilder::new()
                 .title(&"Save SVG")
                 .modal(true)
                 .action(gtk::FileChooserAction::Save)
@@ -72,7 +73,7 @@ mod imp {
                 .cancel_label(&"_Cancel")
                 .build();
 
-            let gesture_drag = gtk::GestureDragBuilder::new()
+            let gesture_drag = gtk::builders::GestureDragBuilder::new()
                 .propagation_phase(gtk::PropagationPhase::Bubble)
                 .build();
 
@@ -150,6 +151,7 @@ mod imp {
     }
 
     impl ApplicationWindowImpl for ApplicationWindow {}
+    impl AdwApplicationWindowImpl for ApplicationWindow {}
 }
 
 glib::wrapper! {
