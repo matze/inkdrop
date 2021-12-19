@@ -20,16 +20,19 @@
   <template class="ApplicationWindow" parent="AdwApplicationWindow">
     <property name="default-width">600</property>
     <property name="default-height">400</property>
+    <style>
+      <class name="application"/>
+    </style>
     <child>
       <object class="GtkWindowHandle">
         <child>
           <object class="GtkBox">
             <property name="orientation">vertical</property>
             <child type="start">
-              <object class="GtkHeaderBar" id="headerbar">
+              <object class="AdwHeaderBar">
                 <child type="start">
                   <object class="GtkButton" id="open_button">
-                    <property name="icon-name">document-open-symbolic</property>
+                    <property name="label">Open</property>
                     <property name="action-name">win.open</property>
                   </object>
                 </child>
