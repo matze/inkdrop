@@ -20,6 +20,7 @@ fn main() -> Result<()> {
     gtk::glib::set_prgname(Some("inkdrop"));
 
     gtk::init().expect("Unable to start GTK4");
+    adw::init();
 
     let res = gio::Resource::load(RESOURCES_FILE).expect("Could not load gresource file");
     gio::resources_register(&res);

@@ -1,4 +1,6 @@
 <interface>
+  <requires lib="gtk" version="4.0"/>
+  <requires lib="libadwaita" version="1.0"/>
   <menu id="primary_menu">
     <section>
       <item>
