@@ -568,6 +568,7 @@ impl ApplicationWindow {
                 }
 
                 cr.set_source_rgba(color.0, color.1, color.2, 1.0);
+                cr.set_line_width(1.0);
                 cr.move_to(points[0].x, points[0].y);
 
                 for point in points.iter().skip(1) {
