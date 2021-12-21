@@ -31,9 +31,14 @@
             <child type="start">
               <object class="AdwHeaderBar">
                 <child type="start">
-                  <object class="GtkButton" id="open_button">
-                    <property name="label">Open</property>
-                    <property name="action-name">win.open</property>
+                  <object class="GtkBox">
+                    <property name="orientation">horizontal</property>
+                    <child>
+                      <object class="GtkToggleButton" id="flap-toggle-button">
+                        <property name="icon-name">view-sidebar-start-symbolic</property>
+                        <property name="active">True</property>
+                      </object>
+                    </child>
                   </object>
                 </child>
                 <child type="end">
@@ -46,6 +51,7 @@
             </child>
             <child>
               <object class="AdwFlap">
+                <property name="reveal-flap" bind-source="flap-toggle-button" bind-property="active"/>
                 <property name="separator">
                   <object class="GtkSeparator"/>
                 </property>
@@ -280,10 +286,23 @@
                       </object>
                     </child>
                     <child>
-                      <object class="GtkButton" id="save_button">
+                      <object class="GtkBox">
+                        <property name="orientation">GTK_ORIENTATION_HORIZONTAL</property>
                         <property name="halign">GTK_ALIGN_END</property>
-                        <property name="icon-name">document-save-as-symbolic</property>
-                        <property name="margin-top">24</property>
+                        <property name="spacing">12</property>
+                        <child>
+                          <object class="GtkButton" id="open_button">
+                            <property name="icon-name">document-open-symbolic</property>
+                            <property name="action-name">win.open</property>
+                            <property name="margin-top">24</property>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkButton" id="save_button">
+                            <property name="icon-name">document-save-as-symbolic</property>
+                            <property name="margin-top">24</property>
+                          </object>
+                        </child>
                       </object>
                     </child>
                     <child>
