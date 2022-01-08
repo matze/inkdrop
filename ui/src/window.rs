@@ -475,7 +475,6 @@ impl ApplicationWindow {
         fn get_viewport(gesture_drag: &gtk::GestureDrag) -> gtk::Viewport {
             gesture_drag
                 .widget()
-                .unwrap()
                 .parent()
                 .unwrap()
                 .downcast::<gtk::Viewport>()
