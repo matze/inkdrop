@@ -10,10 +10,7 @@ fn weighted_centroid(points: &[delaunator::Point], img: &image::DynamicImage) ->
 
     let (width, height) = img.dimensions();
 
-    let points = points
-        .into_iter()
-        .map(Point::from)
-        .collect::<Vec<_>>();
+    let points = points.iter().map(Point::from).collect::<Vec<_>>();
 
     let sample_point = |p: &Point| -> f64 {
         if p.x as u32 == width - 1 || p.y as u32 == height - 1 {
@@ -41,10 +38,7 @@ fn weighted_centroid(points: &[delaunator::Point], img: &image::DynamicImage) ->
     // Use vertices of the hull as sample points and final weights for the points. However, we
     // should use the entire cell or image as a density function. In some cases points may wander
     // off ...
-    let weights = points
-        .iter()
-        .map(sample_point)
-        .collect::<Vec<_>>();
+    let weights = points.iter().map(sample_point).collect::<Vec<_>>();
 
     let center = points.iter().fold(Point::origin(), |acc, p| acc + *p);
 
@@ -89,6 +83,6 @@ pub fn move_points(points: Vec<Point>, img: &image::DynamicImage) -> Result<Vec<
     Ok(diagram
         .cells()
         .iter()
-        .map(|c| weighted_centroid(c.points(), &img))
+        .map(|c| weighted_centroid(c.points(), img))
         .collect::<Vec<_>>())
 }

@@ -16,7 +16,7 @@ fn draw_path(document: Document, path: &Vec<Point>, color: &str) -> Document {
 
     let mut data = Data::new().move_to((path[0].x, path[0].y));
 
-    for point in path.into_iter().skip(1) {
+    for point in path.iter().skip(1) {
         data = data.line_to((point.x, point.y));
     }
 
@@ -47,13 +47,13 @@ fn draw_points(document: Document, points: &Vec<Point>, color: &str) -> Document
 
 pub fn write_path(
     filename: &path::Path,
-    point_sets: &Vec<Vec<Point>>,
+    point_sets: &[Vec<Point>],
     width: u32,
     height: u32,
 ) -> Result<()> {
     let mut document = Document::new().set("viewBox", (0, 0, width, height));
 
-    for (path, color) in point_sets.into_iter().zip(COLORS.iter()) {
+    for (path, color) in point_sets.iter().zip(COLORS.iter()) {
         document = draw_path(document, path, color);
     }
 
@@ -64,13 +64,13 @@ pub fn write_path(
 
 pub fn write_points(
     filename: &path::Path,
-    point_sets: &Vec<Vec<Point>>,
+    point_sets: &[Vec<Point>],
     width: u32,
     height: u32,
 ) -> Result<()> {
     let mut document = Document::new().set("viewBox", (0, 0, width, height));
 
-    for (points, color) in point_sets.into_iter().zip(COLORS.iter()) {
+    for (points, color) in point_sets.iter().zip(COLORS.iter()) {
         document = draw_points(document, points, color);
     }
 
