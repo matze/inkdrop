@@ -6,6 +6,7 @@ use inkdrop::tsp;
 use inkdrop::voronoi;
 use log::info;
 use rayon::prelude::*;
+use std::io::Write;
 use std::path::PathBuf;
 use structopt::StructOpt;
 
@@ -15,7 +16,10 @@ pub struct Options {
     input: PathBuf,
 
     #[structopt(long, short, parse(from_os_str))]
-    output: PathBuf,
+    svg: Option<PathBuf>,
+
+    #[structopt(long, short, parse(from_os_str))]
+    json: Option<PathBuf>,
 
     #[structopt(long, short, default_value = "20000")]
     num_points: usize,
@@ -58,7 +62,9 @@ fn main() -> Result<()> {
     }
 
     if opt.draw_points {
-        inkdrop::svg::write_points(&opt.output, &point_sets, width, height)?;
+        if let Some(path) = opt.svg {
+            inkdrop::svg::write_points(&path, &point_sets, width, height)?;
+        }
     } else {
         info!("Make NN tours");
 
@@ -73,7 +79,14 @@ fn main() -> Result<()> {
             })
             .collect();
 
-        inkdrop::svg::write_path(&opt.output, &tours, width, height)?;
+        if let Some(path) = opt.svg {
+            inkdrop::svg::write_path(&path, &tours, width, height)?;
+        }
+        if let Some(path) = opt.json {
+            // serialize channels
+            let fh = std::fs::File::create(path)?;
+            serde_json::to_writer_pretty(&fh, &tours)?;
+        }
     }
 
     Ok(())

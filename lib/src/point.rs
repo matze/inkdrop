@@ -1,8 +1,9 @@
-use std::ops::{Add, AddAssign, Div, Mul};
+use serde::{Deserialize, Serialize};
 use std::fmt;
+use std::ops::{Add, AddAssign, Div, Mul};
 use voronator::delaunator;
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Serialize, Deserialize)]
 pub struct Point {
     pub x: f64,
     pub y: f64,
@@ -27,9 +28,9 @@ impl Point {
 impl fmt::Debug for Point {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Point")
-         .field("x", &self.x)
-         .field("y", &self.y)
-         .finish()
+            .field("x", &self.x)
+            .field("y", &self.y)
+            .finish()
     }
 }
 
@@ -72,5 +73,11 @@ impl From<delaunator::Point> for Point {
 impl From<&delaunator::Point> for Point {
     fn from(p: &delaunator::Point) -> Self {
         Point::new(p.x, p.y)
+    }
+}
+
+impl PartialEq for Point {
+    fn eq(&self, other: &Self) -> bool {
+        self.distance(other) < 0.00001
     }
 }
