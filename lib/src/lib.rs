@@ -2,6 +2,7 @@ pub mod color;
 pub mod point;
 pub mod tsp;
 pub mod voronoi;
+pub mod gcode;
 #[cfg(feature = "use-svg")]
 pub mod svg;
 

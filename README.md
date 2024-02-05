@@ -18,7 +18,7 @@ Using the `--draw-points` parameter we can output all sampled points. The number
 of sampled points can be controlled with the `--num-points` parameter. Calling
 
     $ inkdrop-cli --input nofretete.png \
-                  --output output.svg \
+                  --svg output.svg \
                   --draw-points \
                   --num-points 20000
 
@@ -31,7 +31,7 @@ noisy. We can move these initial points using the Weighted Voronoi method.
 Using
 
     $ inkdrop --input nofretete.png \
-                  --output output.svg \
+                  --svg output.svg \
                   --draw-points \
                   --num-points 20000 \
                   --voronoi-iterations 100
@@ -48,7 +48,7 @@ until the improvement is not better than the parameter given. So our final
 command line
 
     $ inkdrop-cli --input nofretete.png \
-                  --output output.svg \
+                  --svg output.svg \
                   --num-points 20000 \
                   --voronoi-iterations 100
                   --tsp-improvement 0.001
@@ -56,6 +56,45 @@ command line
 gives us the following output:
 
 ![Nefertiti TSP](examples/nofretete-path-voronoi-100-tsp-001.png)
+
+#### gcode conversion
+
+To create gcode ready to send to your drawing machine, you need to execute
+two steps:
+
+- Use `inkdrop-cli` with the `--json` option (which will in addition to the SVG
+write a point list in JSON format as well)
+- Use `gcode-converter` with the resulting JSON and a claibration file.
+
+The calibration is derived from the measurements of your individual machine. A file
+looks like this:
+
+```json
+{
+  "base_width": 300.0,
+  "base_height": 560.0,
+  "drawing_width": 300.0,
+  "drawing_height": 450.0
+}
+````
+
+![Calibration measurements](measurements.png)
+
+Now use this to call the CLI:
+
+    $ gcode-converter --calibration calib.json
+                      --input nofretete.json
+                      --output nofretete
+
+which will create `N` gcode files in directory `nofretete`, where `N` is the number of 
+channels of your picture.
+
+**Important:** The gcode coordinates assume the home position `(0, 0)` to be in the *center of the drawing area*, so the *origins
+of both coordinate systems are equal*. In practice, this means:
+
+- position in the center of the drawing area
+- position the pen in the center of the paper
+- reset the positions in your controller (reset to zero)
 
 
 ### GTK4 user interface
