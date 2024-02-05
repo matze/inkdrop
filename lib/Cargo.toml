@@ -14,7 +14,8 @@ rand = "0"
 voronator = "0"
 svg = { version = "0", optional = true }
 serde = { version = "1.0.186", features = ["derive"] }
-askama = "0.12.0"
+askama = { version = "0.12.0", optional = true }
 
 [features]
-use-svg = ["svg"]
+gcode = ["askama"]
+svg = ["dep:svg"]

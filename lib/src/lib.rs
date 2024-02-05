@@ -1,10 +1,11 @@
 pub mod color;
+#[cfg(feature = "gcode")]
+pub mod gcode;
 pub mod point;
+#[cfg(feature = "svg")]
+pub mod svg;
 pub mod tsp;
 pub mod voronoi;
-pub mod gcode;
-#[cfg(feature = "use-svg")]
-pub mod svg;
 
 use image::GenericImageView;
 use rand::Rng;

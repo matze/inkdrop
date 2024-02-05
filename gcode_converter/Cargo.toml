@@ -8,7 +8,7 @@ edition = "2018"
 
 [dependencies]
 anyhow = "1"
-inkdrop = { path = "../lib", features = ["use-svg"] }
+inkdrop = { path = "../lib", features = ["gcode", "svg"] }
 log = "0"
 env_logger = "0"
 structopt = { version = "0", default-features = false }
