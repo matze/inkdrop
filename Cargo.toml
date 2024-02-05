@@ -1,2 +1,2 @@
 [workspace]
-members = ["lib", "cli", "ui", "web", "gcode_converter"]
+members = ["lib", "cli", "web", "gcode_converter"]
