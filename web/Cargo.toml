@@ -19,7 +19,7 @@ inkdrop = { path = "../lib" }
 js-sys = "0.3"
 serde = { version = "1", features = ["derive"] }
 wasm-bindgen = { version = "0" }
-yew = "0"
+yew = "0.18"
 
 # Not a direct dependency but we need to enable js to make inkdrop compile for
 # wasm32-unknown-unknown
