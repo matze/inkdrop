@@ -130,7 +130,6 @@ impl Calibration {
 
 #[cfg(test)]
 mod tests {
-
     use super::*;
 
     #[test]
@@ -140,13 +139,11 @@ mod tests {
             base_height: 57.3,
             drawing_width: 50.,
             drawing_height: 50.,
-            l0_x: 0.,
-            l0_y: 0.,
         };
 
         assert_eq!(
             calib.apply(&Point::origin()),
-            Point::new(64.06248902, 64.06248902)
+            Point::new(69.909173217826, 69.909173217826)
         );
     }
 
@@ -157,8 +154,6 @@ mod tests {
             base_height: 20.,
             drawing_width: 50.,
             drawing_height: 100.,
-            l0_x: 0.,
-            l0_y: 0.,
         };
 
         let channels = vec![vec![Point::new(-1., 15.), Point::new(4., -5.)]];
