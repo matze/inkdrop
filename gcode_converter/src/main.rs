@@ -1,6 +1,4 @@
 use anyhow::Result;
-use inkdrop::point::Point;
-use log::info;
 use serde::Deserialize;
 use std::io::Write;
 use std::path::PathBuf;
@@ -47,20 +45,11 @@ fn main() -> Result<()> {
     let translated = calib.translate_origin(&channels);
     let transformed = calib.transform_coordinates(&translated);
 
-    //dbg!(&channels, &translated, &transformed);
-
-    let out_dir = opt.output.as_path().clone();
-
-    std::fs::create_dir_all(out_dir)?;
+    std::fs::create_dir_all(&opt.output)?;
 
     for (index, channel) in transformed.iter().enumerate() {
-        let file_name: PathBuf = {
-            let mut _v = opt.output.clone();
-            _v.push(format!("channel_{index:03}.gcode"));
-            _v
-        };
-
-        let mut fh = std::fs::File::create(&file_name)?;
+        let filename = opt.output.join(format!("channel_{index:03}.gcode"));
+        let mut fh = std::fs::File::create(&filename)?;
         let gcode = calib.gcode(channel);
         fh.write_all(gcode.as_bytes())?;
     }

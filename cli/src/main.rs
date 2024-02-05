@@ -6,7 +6,6 @@ use inkdrop::tsp;
 use inkdrop::voronoi;
 use log::info;
 use rayon::prelude::*;
-use std::io::Write;
 use std::path::PathBuf;
 use structopt::StructOpt;
 
