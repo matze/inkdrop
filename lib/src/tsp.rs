@@ -1,4 +1,4 @@
-use crate::point::Point;
+use crate::Point;
 use log::debug;
 
 fn total_distance(tour: &[Point]) -> f64 {

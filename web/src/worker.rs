@@ -40,7 +40,7 @@ pub struct Worker {
 }
 
 impl UpdateData {
-    fn from(width: u32, height: u32, point_sets: &Vec<Vec<inkdrop::point::Point>>) -> Self {
+    fn from(width: u32, height: u32, point_sets: &Vec<Vec<inkdrop::Point>>) -> Self {
         Self {
             width,
             height,

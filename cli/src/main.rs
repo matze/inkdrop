@@ -1,9 +1,7 @@
 use anyhow::Result;
 use image::io::Reader;
 use image::GenericImageView;
-use inkdrop::point::Point;
-use inkdrop::tsp;
-use inkdrop::voronoi;
+use inkdrop::{tsp, voronoi, Point};
 use log::info;
 use rayon::prelude::*;
 use std::path::PathBuf;

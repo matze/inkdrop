@@ -1,6 +1,6 @@
 use anyhow::Result;
 
-use crate::point::Point;
+use crate::Point;
 use std::path;
 use svg::node::element::path::Data;
 use svg::node::element::Circle;

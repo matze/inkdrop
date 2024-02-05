@@ -10,12 +10,14 @@ pub mod voronoi;
 use image::GenericImageView;
 use rand::Rng;
 
+pub use point::Point;
+
 pub fn sample_points(
     img: &image::DynamicImage,
     num_points: usize,
     gamma: f32,
     cmyk: bool,
-) -> Vec<Vec<point::Point>> {
+) -> Vec<Vec<Point>> {
     let (width, height) = img.dimensions();
     let mut rng = rand::thread_rng();
 
@@ -33,14 +35,14 @@ pub fn sample_points(
 
             for (points, color) in ps.iter_mut().zip(cmyk.iter()) {
                 if sample >= color.powf(gamma) {
-                    points.push(point::Point::new(x, y));
+                    points.push(Point::new(x, y));
                 }
             }
         } else {
             let black = 1.0 - color::to_black(channels[0], channels[1], channels[2]);
 
             if sample >= black.powf(gamma) {
-                ps[3].push(point::Point::new(x, y));
+                ps[3].push(Point::new(x, y));
             }
         }
     }

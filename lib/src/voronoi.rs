@@ -1,5 +1,5 @@
 use crate::color::to_black;
-use crate::point::Point;
+use crate::Point;
 use anyhow::{anyhow, Result};
 use image::GenericImageView;
 use voronator::delaunator;
