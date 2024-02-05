@@ -40,7 +40,7 @@ pub struct Worker {
 }
 
 impl UpdateData {
-    fn from(width: u32, height: u32, point_sets: &Vec<Vec<inkdrop::Point>>) -> Self {
+    fn from(width: u32, height: u32, point_sets: &[Vec<inkdrop::Point>]) -> Self {
         Self {
             width,
             height,
@@ -97,7 +97,7 @@ impl Agent for Worker {
                 if data.compute_path {
                     point_sets = point_sets
                         .into_iter()
-                        .map(|p| inkdrop::tsp::make_nn_tour(p))
+                        .map(inkdrop::tsp::make_nn_tour)
                         .collect();
 
                     self.link.respond(
@@ -108,7 +108,7 @@ impl Agent for Worker {
                     for _ in 0..data.tsp_iterations {
                         let (optimized, _): (Vec<_>, Vec<_>) = point_sets
                             .into_iter()
-                            .map(|ps| inkdrop::tsp::optimize_two_opt_tour(ps))
+                            .map(inkdrop::tsp::optimize_two_opt_tour)
                             .unzip();
 
                         point_sets = optimized;

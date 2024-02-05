@@ -43,7 +43,7 @@ fn view_point(point: &(f64, f64)) -> Html {
     }
 }
 
-fn view_path(path: &Vec<(f64, f64)>) -> Html {
+fn view_path(path: &[(f64, f64)]) -> Html {
     let remaining = path
         .iter()
         .skip(1)
@@ -62,7 +62,7 @@ impl Component for Model {
     type Properties = ();
 
     fn create(_: Self::Properties, link: ComponentLink<Self>) -> Self {
-        let callback = link.callback(|r| Msg::ResultComputed(r));
+        let callback = link.callback(Msg::ResultComputed);
         let worker = worker::Worker::bridge(callback);
 
         Self {
@@ -93,32 +93,32 @@ impl Component for Model {
                     self.tasks.push(task);
                 }
 
-                return false;
+                false
             }
             Msg::Opened(data) => {
                 self.data = Some(data);
                 self.maybe_compute();
-                return true;
+                true
             }
             Msg::UpdateNumPoints(num) => {
                 self.num_points = num;
                 self.maybe_compute();
-                return true;
+                true
             }
             Msg::UpdateVoronoiIterations(num) => {
                 self.voronoi_iterations = num;
                 self.maybe_compute();
-                return true;
+                true
             }
             Msg::UpdateTspIterations(num) => {
                 self.tsp_iterations = num;
                 self.maybe_compute();
-                return true;
+                true
             }
             Msg::UpdateDrawStyle => {
                 self.draw_path = !self.draw_path;
                 self.maybe_compute();
-                return true;
+                true
             }
             Msg::ResultComputed(response) => {
                 match response {
@@ -136,7 +136,7 @@ impl Component for Model {
                         self.computing = false;
                     }
                 }
-                return true;
+                true
             }
         }
     }
@@ -156,7 +156,7 @@ impl Component for Model {
                                 p.iter().map(view_point).collect::<Html>()
                             }
                             ComputeResult::Path(p) => {
-                                view_path(&p)
+                                view_path(p)
                             }
                         }
                     }
