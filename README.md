@@ -30,7 +30,7 @@ It resembles the input image but due to the stochastic nature, it is a bit
 noisy. We can move these initial points using the Weighted Voronoi method.
 Using
 
-    $ inkdrop --input nofretete.png \
+    $ inkdrop-cli --input nofretete.png \
                   --svg output.svg \
                   --draw-points \
                   --num-points 20000 \
@@ -63,11 +63,11 @@ To create gcode ready to send to your drawing machine, you need to execute
 two steps:
 
 - Use `inkdrop-cli` with the `--json` option (which will in addition to the SVG
-write a point list in JSON format as well)
-- Use `gcode-converter` with the resulting JSON and a claibration file.
+  write a point list in JSON format as well)
+- Use `gcode-converter` with the resulting JSON and a calibration file.
 
-The calibration is derived from the measurements of your individual machine. A file
-looks like this:
+The calibration is derived from the measurements of your individual machine. A
+file looks like this:
 
 ```json
 {
@@ -76,7 +76,7 @@ looks like this:
   "drawing_width": 300.0,
   "drawing_height": 450.0
 }
-````
+```
 
 ![Calibration measurements](measurements.png)
 
@@ -86,11 +86,12 @@ Now use this to call the CLI:
                       --input nofretete.json
                       --output nofretete
 
-which will create `N` gcode files in directory `nofretete`, where `N` is the number of 
-channels of your picture.
+which will create `N` gcode files in directory `nofretete`, where `N` is the
+number of channels of your picture.
 
-**Important:** The gcode coordinates assume the home position `(0, 0)` to be in the *center of the drawing area*, so the *origins
-of both coordinate systems are equal*. In practice, this means:
+**Important:** The gcode coordinates assume the home position `(0, 0)` to be in
+the *center of the drawing area*, so the *origins of both coordinate systems are
+equal*. In practice, this means:
 
 - position in the center of the drawing area
 - position the pen in the center of the paper
