@@ -1,46 +1,46 @@
 use anyhow::Result;
+use clap::Parser;
 use image::io::Reader;
 use image::GenericImageView;
 use inkdrop::{tsp, voronoi, Point};
 use log::info;
 use rayon::prelude::*;
 use std::path::PathBuf;
-use structopt::StructOpt;
 
-#[derive(StructOpt)]
+#[derive(Parser)]
 pub struct Options {
-    #[structopt(long, short, parse(from_os_str))]
+    #[arg(long, short)]
     input: PathBuf,
 
-    #[structopt(long, short, parse(from_os_str))]
+    #[arg(long, short)]
     svg: Option<PathBuf>,
 
-    #[structopt(long, short, parse(from_os_str))]
+    #[arg(long, short)]
     json: Option<PathBuf>,
 
-    #[structopt(long, short, default_value = "20000")]
+    #[arg(long, short, default_value = "20000")]
     num_points: usize,
 
-    #[structopt(long)]
+    #[arg(long)]
     draw_points: bool,
 
-    #[structopt(long, default_value = "0")]
+    #[arg(long, default_value = "0")]
     voronoi_iterations: usize,
 
-    #[structopt(long, default_value = "0")]
+    #[arg(long, default_value = "0")]
     tsp_improvement: f64,
 
-    #[structopt(long, default_value = "1")]
+    #[arg(long, default_value = "1")]
     gamma: f32,
 
-    #[structopt(long)]
+    #[arg(long)]
     cmyk: bool,
 }
 
 fn main() -> Result<()> {
     env_logger::init();
 
-    let opt = Options::from_args();
+    let opt = Options::parse();
     let img = Reader::open(&opt.input)?.decode()?;
     let (width, height) = img.dimensions();
 

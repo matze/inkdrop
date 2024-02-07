@@ -8,9 +8,9 @@ edition = "2018"
 
 [dependencies]
 anyhow = { workspace = true }
+clap = { workspace = true }
 env_logger = { workspace = true }
 inkdrop = { path = "../lib", features = ["gcode", "svg"] }
 log = { workspace = true }
 serde = { version = "1.0.188", features = ["derive"] }
 serde_json = { workspace = true }
-structopt = { workspace = true }

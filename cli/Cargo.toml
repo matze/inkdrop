@@ -9,11 +9,11 @@ name = "inkdrop"
 path = "src/main.rs"
 
 [dependencies]
-anyhow ={ workspace = true }
+anyhow = { workspace = true }
+clap = { workspace = true }
 env_logger = { workspace = true }
 image = { version = "0", default-features = false, features = ["png", "jpeg"] }
 inkdrop = { path = "../lib", features = ["svg"] }
 log = { workspace = true }
 rayon = "1"
 serde_json = { workspace = true }
-structopt = { workspace = true }

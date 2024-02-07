@@ -1,11 +1,9 @@
 use anyhow::Result;
+use clap::Parser;
+use inkdrop::gcode::{Calibration, Channel, Channels};
 use serde::Deserialize;
 use std::io::Write;
 use std::path::PathBuf;
-use structopt::StructOpt;
-
-use inkdrop::gcode::Calibration;
-use inkdrop::gcode::{Channel, Channels};
 
 #[derive(Deserialize)]
 #[serde(untagged)]
@@ -14,22 +12,22 @@ enum ChannelOrChannels {
     Channels(Channels),
 }
 
-#[derive(StructOpt)]
+#[derive(Parser)]
 pub struct Options {
-    #[structopt(long, short, parse(from_os_str))]
+    #[arg(long, short)]
     input: PathBuf,
 
-    #[structopt(long, short, parse(from_os_str))]
+    #[arg(long, short)]
     output: PathBuf,
 
-    #[structopt(long, short, parse(from_os_str))]
+    #[arg(long, short)]
     calibration: PathBuf,
 }
 
 fn main() -> Result<()> {
     env_logger::init();
 
-    let opt = Options::from_args();
+    let opt = Options::parse();
 
     let fh_in = std::fs::File::open(opt.input)?;
     let fh_calib = std::fs::File::open(opt.calibration)?;
