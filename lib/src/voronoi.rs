@@ -67,7 +67,9 @@ pub fn move_points(points: Vec<Point>, img: &image::DynamicImage) -> Result<Vec<
 
     let points = points
         .iter()
-        .map(|p| delaunator::Point { x: p.x, y: p.y })
+        .filter_map(|p| {
+            (!p.x.is_nan() && !p.y.is_nan()).then_some(delaunator::Point { x: p.x, y: p.y })
+        })
         .collect::<Vec<_>>();
 
     let diagram = voronator::VoronoiDiagram::new(
